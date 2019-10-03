@@ -16,10 +16,13 @@
 * The group expects to continue as follows:
     * Rust panic traversing "no destructor" native frames:
         * Lucet and mozjpeg require only Rust panics traversing "no-destructor" native frames
-    * Native panic/lonjmp traversing "no destructor" Rust frames:
-        * this would handle the Lua/Ruby APIs, which expect to longjmp over "no-destructor"
-          Rust frames -- we would try to define that and give a useful
-          lint
+    * Native panic traversing "no destructor" Rust frames:
+        * this *might* also make it possible to specify when longjmp
+          is safe (same condition), which would handle the Lua/Ruby
+          APIs, which expect to longjmp over "no-destructor" Rust
+          frames -- we would try to define that and give a useful
+          lint. Longjmp safety is not explicitly in scope except in so
+          far as it interacts with exception handling.
     * Native exception traversing Rust frames with destructors
 * Known unknowns to be determined
     * We may not be able to specify all of the above interactions in a fully cross platform way
