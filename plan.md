@@ -1,16 +1,16 @@
 ## Current action items
 
-1. Make a [draft charter](charter.md) for the project
-    * "enable stable unwinding across FFI boundaries"
-1. Create a Zulip channel (need Niko or another Zulip admin to do this, I think)
-1. Close RFCs #2753 and #2699 and point to this repository and the Zulip channel
-1. Create design documents and drafts in this repo
+1. [x] Make a [draft charter](charter.md) for the project
+1. [x] Create a Zulip channel
+1. [ ] Close RFCs #2753 and #2699 and point to this repository and the Zulip channel
+1. [ ] Create design documents and drafts in this repo
    * create a "sketch" document to start, fill it in over time
-1. Create issues for the outstanding concerns
+1. [ ] Create issues for the outstanding concerns
    * lock issues that are not the current focus topic?
    * unsafe code guidelines just used "focus" labels, maybe do that
    * or maybe use time-based issues (woah!) where the sync meeting marks a
      "pause" to collect, incorporate new findings, and set new topics
+1. [ ] Open a new RFC for `extern "C unwind"`
 
 ## Goals
 
