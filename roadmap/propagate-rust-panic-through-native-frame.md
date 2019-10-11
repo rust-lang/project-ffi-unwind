@@ -26,7 +26,7 @@ In this case, the stack would look like one of the two scenarios:
       +--- rust function panics --+
 ```
 
-We can distinguish two cases:
+We can distinguish three cases:
 
 * The native frame has **no destructors**. An example of this might be a C function.
     * The precise meaning of "no destructors" is defined in terms of the native ABI.
@@ -34,11 +34,15 @@ We can distinguish two cases:
 * The native frame **has destructors** it would like to execute. These could come from C++
   RAII, Java finally blocks, etc.
     * We need to define how the Rust panic is defined and which destructors would execute.
+* The native frame has **no destructors or any affordances for
+  unwinding**. An example of this might be a C function compiled with
+  `-fno-exceptions` or `-fno-unwind-tables`.
+    * The precise meaning of "affordances for unwinding" is defined in terms of the native ABI.
 
 Currently, having a Rust panic "unwind" a native frame is **undefined
-behavior** in both of the above cases. However, we plan to specify the
+behavior** in all of the above cases. However, we plan to specify the
 first case (no destructors) before we think about the more complex
-case (contains destrucors). We will also have to specify this on a
-per-target basis, as the details will vary depending on what exception
-mechanism is in use.
+cases (contains destructors, no affordances). We will also have to
+specify this on a per-target basis, as the details will vary depending
+on what exception mechanism is in use.
 
