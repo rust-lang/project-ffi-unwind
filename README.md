@@ -4,7 +4,7 @@ A [working-group project][shepherds-blog] to extend the Rust language to
 support unwinding that crosses FFI boundaries.
 
 - Shepherds:
-  - [acfoltzer(Alex)](https://github.com/acfoltzer)
+  - [acfoltzer (Adam)](https://github.com/acfoltzer)
   - [batmanaod (Kyle)](https://github.com/batmanaod)
 - Rust lang team contacts:
   - [nikmoatsakis (Niko)](https://github.com/nikmoatsakis)
