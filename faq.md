@@ -24,8 +24,8 @@
   behavior is to support crossing frames with destructors.
 - Rust does not have a concept of `Copy` for stack-frames, which would permit
   the compiler to check that `longjmp` may safely traverse those frames. Such a
-  language feature may be added in the future, but although it would be useful
-  for `longjmp`, it would not be useful for unwinding.
+  language feature [may be added in the future][centril-effects], but although
+  it would be useful for `longjmp`, it would not be useful for unwinding.
 - It should never be assumed that `drop` will be called for objects in
   intermediate frames traversed by a `longjmp`, but this may occur on certain
   platforms. Rust provides no guarantee either way (which is why this is
@@ -38,6 +38,8 @@
   `panic` runtime.
 - unwinding involves the use of a personality function, which raises additional
   cross-language compatibility concerns; `setjmp`/`longjmp` does not
+
+[centril-effects]: https://github.com/Centril/rfc-effects/issues/11
 
 ### What new constraints does this ABI place on Rust's unwinding mechanism?
 
