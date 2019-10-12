@@ -48,4 +48,4 @@
 - One more concern is how `panic = abort` will be handled; please refer to [the
   roadmap][roadmap-panic-abort] for details.
 
-[roadmap-panic-abort]: roadmap/c-unwind-abi.md#panic-abort
+[roadmap-panic-abort]: roadmap/c-unwind-abi.md#panic--abort

@@ -21,7 +21,10 @@ should happen if unwinding actually occurs, and hence **even if you
 use this ABI**, unwinding across a `"C unwind"` ABI barrier is **still
 undefined behavior**. However, it is our **intent** to define that
 behavior in the future (and this is what the other roadmap items
-are all about). 
+are all about). Additionally, we consider unwinding across an `extern "C"`
+boundary to be [LLVM-undefined behavior][LLBM-UB], whereas for
+`extern "C unwind"` it is not; i.e., `rustc` is not permitted to generate
+code that would _intentionally_ be undefined at the LLVM level in this case.
 
 In practical terms, the effect of using `"C unwind"` right now is that
 we will tell LLVM that the function "may unwind". We will also not add
@@ -36,6 +39,8 @@ you will have to keep up. Effectively, you're on a nightly release,
 even though you're using only stable syntax. (The same is true for
 many aspects of unsafe code.)
 
+[LLVM-UB]: ../spec-terminology.md#LLVM-undefined-behavior-or-LLVM-UB
+
 ## Panic = abort
 
 In order to safely call functions that may unwind, a Rust function must have
@@ -45,5 +50,3 @@ generated, which would make the behavior of `"C unwind"`
 require landing-pad generation for any function calling a `"C unwind"`
 function, even when compiling with `panic = abort`. These landing pads would of
 course `abort` the application rather than propagate the unwind.
-
-[LLVM-UB]: spec-terminology.md#LLVM-undefined-behavior-or-LLVM-UB
