@@ -37,7 +37,7 @@
   `abort`. The behavior of `setjmp`/`longjmp`, however, is independent of the
   `panic` runtime.
 - unwinding involves the use of a personality function, which raises additional
-  cross-language compatibility concerns; `setjmp`/`longjmp` does not
+  cross-language compatibility concerns; `setjmp`/`longjmp` does not.
 
 [centril-effects]: https://github.com/Centril/rfc-effects/issues/11
 
