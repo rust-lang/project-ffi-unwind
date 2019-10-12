@@ -11,7 +11,7 @@ support unwinding that crosses FFI boundaries.
   - [joshtriplett (Josh)](https://github.com/joshtriplett)
 - [Our chat room][zulip-room]
 - [Our charter](charter.md)
-- [Our plan](plan.md)
+- [Our project planning](project-planning.md)
 - [Cross-language unwinding FAQ](faq.md)
 
 [shepherds-blog]: http://smallcultfollowing.com/babysteps/blog/2019/09/11/aic-shepherds-3-0/
