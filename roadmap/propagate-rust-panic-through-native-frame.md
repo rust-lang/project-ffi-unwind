@@ -59,15 +59,16 @@ So far we do **not** have plans to specify these cases.
 
 ## Unwind-termination and related concerns
 
-There are several possibilities for the top section of the diagram, above the native frames:
+There are several possibilities for the top section of the diagram, above the
+native frames:
 
 * Rust frames - the `panic` re-enters Rust frames
   * At this point, the `panic` will be no different from a normal `panic`,
     unless and until it re-enters native frames.
   * The `panic` may caught as usual, either with `catch_panic` or by crossing a
     thread boundary.
-* Thread boundary - the thread initiating the `panic` started with a call to a
-  native (non-Rust) function.
+* Thread boundary - the exception propagates all the way to a native frame that
+  was invoked from another thread
 * App entry point - the unwind is not caught and does not cross a thread
   boundary.
   * This should cause the application to terminate.
