@@ -45,7 +45,7 @@
 
 - Ideally: none. However, if Rust's default unwinding mechanism changes, a
   translation layer will be required to maintain the `C unwind` ABI.
-- One more concern is how `panic = abort` will be handled: in order to safely
-  call functions that may unwind, the callers must have landing pads generated.
-  (These landing pads would of course `abort` the application rather than
-  propagate the unwind.)
+- One more concern is how `panic = abort` will be handled; please refer to [the
+  roadmap][roadmap-panic-abort] for details.
+
+[roadmap-panic-abort]: roadmap/c-unwind-abi.md#panic-abort

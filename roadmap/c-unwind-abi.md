@@ -36,3 +36,14 @@ you will have to keep up. Effectively, you're on a nightly release,
 even though you're using only stable syntax. (The same is true for
 many aspects of unsafe code.)
 
+## Panic = abort
+
+In order to safely call functions that may unwind, a Rust function must have
+a landing pad. Typically, `panic = abort` prevents landing pads from being
+generated, which would make the behavior of `"C unwind"`
+[LLVM-undefined][LLVM-UB]. To make this behavior well defined, we would like to
+require landing-pad generation for any function calling a `"C unwind"`
+function, even when compiling with `panic = abort`. These landing pads would of
+course `abort` the application rather than propagate the unwind.
+
+[LLVM-UB]: spec-terminology.md#LLVM-undefined-behavior-or-LLVM-UB
