@@ -146,7 +146,7 @@ Similarly to the `"Rust"` ABI string, `"C unwind"` functions can unwind:
   whether such unwindings can always, sometimes, or never be caught with
   `catch_unwind` or not is target-dependent. If some of these unwindings that do
   not originate in Rust can be caught, their value is then of type
-  `std::panic::ForeignPanic` (that is, the `Result::Err(Any)` that
+  `std::panic::ForeignException` (that is, the `Result::Err(Any)` that
   `catch_unwind` returns can be downcasted to such a type).
 
 The Rust panic ABI is unspecified. When a `"C unwind"` function that is defined
@@ -186,17 +186,18 @@ In contrast with `"C"`, `"C unwind"` functions can unwind.
   * whether such unwindings can always, sometimes, or never be caught with
   `catch_unwind` or not is target-dependent. If some of these unwindings that do
   not originate in Rust can be caught, their value is then of type
-  `std::panic::ForeignPanic` (that is, the `Result::Err(Any)` that
+  `std::panic::ForeignException` (that is, the `Result::Err(Any)` that
   `catch_unwind` returns can be downcasted to such a type).
     * if during unwinding with a native exception Rust panics, the program `abort`s.
     * if `panic=abort` the behavior is target-dependent.
 
-The type `std::panic::ForeignPanic` is only available on selected targets and it is opaque. 
-It does however allow re-raising the foreign exception using `resume_unwind` as follows:
+The type `std::panic::ForeignException` is only available on selected targets
+and it is opaque (it is equivalent to C++ `std::exception_ptr`). It does however
+allow re-raising the foreign exception using `resume_unwind` as follows:
 
 ```rust
 // TODO: extend this example to use `panic::catch_unwind` and `Any::downcast`:
-let x: std::panic::ForeignPanic;
+let x: std::panic::ForeignException;
 std::panic::resume_unwind(x);
 ```
 
