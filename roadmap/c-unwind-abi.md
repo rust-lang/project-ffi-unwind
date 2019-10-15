@@ -22,7 +22,7 @@ use this ABI**, unwinding across a `"C unwind"` ABI barrier is **still
 undefined behavior**. However, it is our **intent** to define that
 behavior in the future (and this is what the other roadmap items
 are all about). Additionally, we consider unwinding across an `extern "C"`
-boundary to be [LLVM-undefined behavior][LLBM-UB], whereas for
+boundary to be [LLVM-undefined behavior][LLVM-UB], whereas for
 `extern "C unwind"` it is not; i.e., `rustc` is not permitted to generate
 code that would _intentionally_ be undefined at the LLVM level in this case.
 
