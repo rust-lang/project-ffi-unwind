@@ -19,7 +19,7 @@ other RFCs that build on this one, or in FCPs.
 # Motivation
 [motivation]: #motivation
 
-## Platforms APIs that unwind Rust->"C unwind"
+## Platforms APIs that unwind: Rust calls "C unwind"
 
 On most mainstream platforms, the native platform ABI supports unwinding. This
 allows native applications on those platforms to expose APIs that unwind, and to
@@ -104,7 +104,7 @@ native unwinding ABI, and such libraries are ubiquotous on all major platforms
 [itanium]: https://itanium-cxx-abi.github.io/cxx-abi/abi.html
 [pthreads]: http://man7.org/linux/man-pages/man7/pthreads.7.html
 
-## Unwinding from a Rust callback in C (C->Rust)
+## Unwinding from a Rust callback in C: "C unwind" calls Rust
 
 Some C libraries like `mozjpeg` take callbacks using the platform native ABI and
 expect these callbacks to unwind through C back into the user application to
