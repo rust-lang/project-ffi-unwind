@@ -195,6 +195,7 @@ The type `std::panic::ForeignPanic` is only available on selected targets and it
 It does however allow re-raising the foreign exception using `resume_unwind` as follows:
 
 ```rust
+// TODO: extend this example to use `panic::catch_unwind` and `Any::downcast`:
 let x: std::panic::ForeignPanic;
 std::panic::resume_unwind(x);
 ```
