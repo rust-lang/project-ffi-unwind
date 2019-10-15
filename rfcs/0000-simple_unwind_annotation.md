@@ -19,6 +19,8 @@ other RFCs that build on this one, or in FCPs.
 # Motivation
 [motivation]: #motivation
 
+## Platforms APIs that unwind Rust->"C unwind"
+
 On most mainstream platforms, the native platform ABI supports unwinding. This
 allows native applications on those platforms to expose APIs that unwind, and to
 call libraries whose APIs unwind. The `"C unwind"` ABI string allows defining
@@ -102,6 +104,20 @@ native unwinding ABI, and such libraries are ubiquotous on all major platforms
 [itanium]: https://itanium-cxx-abi.github.io/cxx-abi/abi.html
 [pthreads]: http://man7.org/linux/man-pages/man7/pthreads.7.html
 
+## Unwinding from a Rust callback in C (C->Rust)
+
+Some C libraries like `mozjpeg` take callbacks using the platform native ABI and
+expect these callbacks to unwind through C back into the user application to
+report errors.
+
+JIT compilers like [Lucet][lucet] and [Weld][weld]: TODO
+  * they generate code that calls other code using the C ABI
+  * all the code except the ABI is implemented in Rust, so they want to be able to unwind through the ABI
+  * the `"Rust"` call ABI is too "unstable" for their uses, and they prefer to use the more stable platform ABI
+
+[lucet]: https://github.com/fastly/lucet	
+[weld]: https://www.weld.rs/
+
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
 
@@ -132,8 +148,6 @@ Similarly to the `"Rust"` ABI string, `"C unwind"` functions can unwind:
   not originate in Rust can be caught, their value is then of type
   `std::panic::ForeignPanic` (that is, the `Result::Err(Any)` that
   `catch_unwind` returns can be downcasted to such a type).
-      * TODO: what happens if the "panic-strategy" is set to `abort`, calling a
-      `"C unwind"` functions does not necessarily abort, otherwise `lognjmp` won't
 
 The Rust panic ABI is unspecified. When a `"C unwind"` function that is defined
 in Rust unwinds, the Rust panic is translated to a "native Rust panic" which
@@ -172,9 +186,8 @@ platforms, and this cost might change over time as the Rust panic ABI evolves.
   not originate in Rust can be caught, their value is then of type
   `std::panic::ForeignPanic` (that is, the `Result::Err(Any)` that
   `catch_unwind` returns can be downcasted to such a type).
-      * TODO: what happens if the "panic-strategy" is set to `abort`, calling a
-      `"C unwind"` functions does not necessarily abort, otherwise `lognjmp` won't
-  * if during unwinding with a native exception Rust panics, the program `abort`s.
+    * if during unwinding with a native exception Rust panics, the program `abort`s.
+    * if `panic=abort` the behavior is target-dependent.
 
 The type `std::panic::ForeignPanic` is only available on selected targets and it is opaque. 
 It does however allow re-raising the foreign exception using `resume_unwind` as follows:
@@ -218,14 +231,18 @@ of the `exception_class` are `Rust` (the string is not null-terminated).
 In Rust, 
 
 * native "foreign" exceptions are all caught by `catch_unwind`, and according to
-the Itanium ABI the behavior of Rust programs that modify these exception
-objects is undefined. If a "foreign" exception reaches a thread boundary, the
-program `abort`s.
+  the Itanium ABI the behavior of Rust programs that modify these exception
+  objects is undefined. If a "foreign" exception reaches a thread boundary, the
+  program `abort`s. If `-C panic=abort`, a "foreign" exception that unwinds into
+  Rust `abort`s the program.
 
 * "forced" unwindings are not caught by `catch_unwind`; if a "forced" unwinding
   reaches a thread boundary, the program `abort`s. Note: "forced" exceptions are
-  used by `longjmp` and thread cancellation in `pthread`s.
-
+  used by `longjmp` and thread cancellation in `pthread`s. If `-C panic=abort`
+  "forced" exceptions that unwind into Rust do not `abort` the program, but
+  unwind the stack instead, and if doing so would require a destructor to run,
+  the behavior is undefined (e.g. a `longjmp` that skips a destructor is UB).
+  
 > *Note*: The Itanium C++ ABI documents that, for C++, a Rust foreign exception can be
 > caught by either `catch(...)` or by `catch(__rust_exception)` if
 > `__rust_exception` is available in the `<exception>` header. If during unwinding
