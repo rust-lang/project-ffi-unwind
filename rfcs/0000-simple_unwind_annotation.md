@@ -204,6 +204,11 @@ The following implicit coercion rules are added for coercing `extern "C"`
 function pointer types into `extern "C unwind"` types (note: the variance of
 `fn(T) -> U` is contravariant for `T` and covariant for `U`):
 
+> **Note**: these rules are analogous to those of `fn` and `unsafe fn` pointer
+> types, where `fn` corresponds to `extern "C"` and `unsafe fn` corresponds to
+> `extern "C unwind"`.
+
+
 ```rust
 extern "C" fn c_fn0(x: extern "C" fn()) { ... }
 let a0: extern "C" fn(extern "C" fn()) = c_fn0; // OK(covariance)
