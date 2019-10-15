@@ -234,7 +234,8 @@ let c3: extern "C unwind" fn() -> extern "C unwind" fn() = a3; // OK(covariance)
 ## "C unwind" on `x86_64-unknown-linux-gnu` and `x86_64-apple-darwin`
 
 These platforms native Rust panics conform to the Itanium ABI. The high 4 bytes
-of the `exception_class` are `Rust` (the string is not null-terminated).
+of the `exception_class` are set to the `Rust` string - this string is not
+null-terminated.
 
 In Rust, 
 
@@ -245,11 +246,11 @@ In Rust,
   Rust `abort`s the program.
 
 * "forced" unwindings are not caught by `catch_unwind`; if a "forced" unwinding
-  reaches a thread boundary, the program `abort`s. Note: "forced" exceptions are
-  used by `longjmp` and thread cancellation in `pthread`s. If `-C panic=abort`
-  "forced" exceptions that unwind into Rust do not `abort` the program, but
-  unwind the stack instead, and if doing so would require a destructor to run,
-  the behavior is undefined (e.g. a `longjmp` that skips a destructor is UB).
+  reaches a thread boundary, the program `abort`s. 
+    * If `-C panic=abort`, "forced" exceptions **TODO**.
+       * I _think_ they `abort`, and `longjmp` doesn't use a forced exception
+       like the ABI docs suggest, but something else that allows it to work in
+       this case.
   
 > *Note*: The Itanium C++ ABI documents that, for C++, a Rust foreign exception can be
 > caught by either `catch(...)` or by `catch(__rust_exception)` if
