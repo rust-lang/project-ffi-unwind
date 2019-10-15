@@ -198,13 +198,16 @@ In contrast with `"C"`, `"C unwind"` functions can unwind.
     * if `panic=abort` the behavior is target-dependent.
 
 The type `std::panic::ForeignException` is only available on selected targets
-and it is opaque (it is equivalent to C++ `std::exception_ptr`). It does however
-allow re-raising the foreign exception using `resume_unwind` as follows:
+and equivalent to C++ `std::exception_ptr`. It allow re-raising the foreign
+exception using `resume_unwind` as follows:
 
 ```rust
-// TODO: extend this example to use `panic::catch_unwind` and `Any::downcast`:
-let x: std::panic::ForeignException;
-std::panic::resume_unwind(x);
+if let Err(x) = panic::catch_unwind(||...) {
+    if x.is::<panic::ForeignException>() {
+       // This exception did not originate in Rust code, rethrow:
+       std::panic::resume_unwind(x);
+    }
+}
 ```
 
 The following implicit coercion rules are added for coercing `extern "C"`
