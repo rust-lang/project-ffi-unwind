@@ -110,7 +110,7 @@ Some C libraries like `mozjpeg` take callbacks using the platform native ABI and
 expect these callbacks to unwind through C back into the user application to
 report errors.
 
-JIT compilers like [Lucet][lucet] and [Weld][weld]: TODO
+JIT compilers like [Lucet][lucet] and [Weld][weld]: TODO (I'm not sure I understood what these programs do; need some help here)
   * they generate code that calls other code using the C ABI
   * all the code except the ABI is implemented in Rust, so they want to be able to unwind through the ABI
   * the `"Rust"` call ABI is too "unstable" for their uses, and they prefer to use the more stable platform ABI
