@@ -116,6 +116,10 @@ Like for all other ABI strings, one can use this ABI string:
   * to define a function in Rust: `extern "C unwind" fn foo() { }`
   * to declare a function in Rust: `extern "C unwind" { fn foo(); }`
   * in function pointer types: `let _: extern "C unwind" fn = foo;`
+    * Since `"C unwind"` is a super-set of `"C"`, there are implicit coercions
+      from `extern "C"` function types to `extern "C unwind"` function types.
+      These are analogous to the coercion rules for safe `fn` types to `unsafe
+      fn` types.
 
 Similarly to the `"Rust"` ABI string, `"C unwind"` functions can unwind:
 
@@ -124,108 +128,148 @@ Similarly to the `"Rust"` ABI string, `"C unwind"` functions can unwind:
   
 * if the `"C unwind"` function is not defined in Rust, it unwinds the stack, but
   whether such unwindings can always, sometimes, or never be caught with
-  `catch_unwind` or not is target-dependent. If some of these unwindings can be
-  caught, their value is then of type `std::panic::ForeignPanic` (that is, the
-  `Result::Err(Any)` that `catch_unwind` returns can be downcasted to such a
-  type).
-      * if the "panic-strategy" is set to `abort`, calling a `"C unwind"`
-  function that unwinds either aborts the program or 
-  
+  `catch_unwind` or not is target-dependent. If some of these unwindings that do
+  not originate in Rust can be caught, their value is then of type
+  `std::panic::ForeignPanic` (that is, the `Result::Err(Any)` that
+  `catch_unwind` returns can be downcasted to such a type).
+      * TODO: what happens if the "panic-strategy" is set to `abort`, calling a
+      `"C unwind"` functions does not necessarily abort, otherwise `lognjmp` won't
 
-When a `"C unwind"` function that is defined in Rust unwinds, the Rust panic is
-translated to a native panic at the function boundary. Calling a function with
-the `"C unwind"` ABI from Rust translates the native unwind into a Rust panic.
-
-When the native panics originate in Rust code, the translation back to Rust
-panics is lossless. 
-
-However, when the native panic 
-
-
+The Rust panic ABI is unspecified. When a `"C unwind"` function that is defined
+in Rust unwinds, the Rust panic is translated to a "native Rust panic" which
+conforms to the native ABI. When a panic originates in Rust unwinds through a
+`"C unwind"` function call back into Rust, the translation is guaranteed to be
+lossless if the panic was not modified. That is, this behaves as if the panic
+would have never left Rust.
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
 
-Currently, Rust assumes that an external function imported with `extern "C" {
-... }` (or another ABI other than `"Rust"`) cannot unwind, and Rust will abort if a panic would propagate out of a
-Rust function with a non-"Rust" ABI ("`extern "ABI" fn`") specification. Under this RFC,
-functions with the `"C panic"` ABI string
-instead allow Rust panic unwinding to proceed through that function
-boundary using Rust's normal unwind mechanism. This may potentially allow Rust
-code to call non-Rust code that calls back into Rust code, and then allow a
-panic to propagate from Rust to Rust across the non-Rust code.
+The Rust panic ABI is unspecified. 
 
-The Rust unwind mechanism is intentionally not specified here. Catching a Rust
-panic in Rust code compiled with a different Rust toolchain or options is not
-specified. Catching a Rust panic in another language or vice versa is not
-specified. The Rust unwind may or may not run non-Rust destructors as it
-unwinds. Propagating a Rust panic through non-Rust code is unspecified;
-implementations that define the behavior may require target-specific options
-for the non-Rust code, or this feature may not be supported at all.
+This RFC introduced the `"C unwind"` ABI string for the following tier-1 targets:
 
-For the purposes of the type system, `"C panic"` is considered a totally distinct ABI string from
-`"C"`. While there may be some circumstances for which an `extern "C" fn` in place
-of an `extern "C panic" fn` (or vice-versa) would be useful, this introduces questions of subtyping and variance
-that are beyond the scope of this RFC. This restrictive approach is forwards-compatible with more
-permissive typing in future work like #2699.
+* `x86_64-unknown-linux-gnu`
+* `x86_64-pc-windows-msvc`
+* `x86_64-apple-darwin` 
+
+On all other targets, usage of the `"C unwind"` generates a compilation error. 
+
+This ABI does not specify the Rust unwinding ABI for these targets. Instead,
+panics crossing function boundaries with the `"C unwind"` ABI are translated
+back and forth from the Rust unwinding ABI to the "native Rust panic ABI" which
+comforms to the platform ABI. This translation might incur a cost on some
+platforms, and this cost might change over time as the Rust panic ABI evolves.
+
+`"C unwind"` functions can unwind:
+
+* if the `"C unwind"` function is defined in Rust, it unwinds the stack, and the
+  panic can be caught with `catch_unwind`.
+  
+* if the `"C unwind"` function is not defined in Rust, it unwinds the stack. 
+  * whether such unwindings can always, sometimes, or never be caught with
+  `catch_unwind` or not is target-dependent. If some of these unwindings that do
+  not originate in Rust can be caught, their value is then of type
+  `std::panic::ForeignPanic` (that is, the `Result::Err(Any)` that
+  `catch_unwind` returns can be downcasted to such a type).
+      * TODO: what happens if the "panic-strategy" is set to `abort`, calling a
+      `"C unwind"` functions does not necessarily abort, otherwise `lognjmp` won't
+  * if during unwinding with a native exception Rust panics, the program `abort`s.
+
+The type `std::panic::ForeignPanic` is only available on selected targets and it is opaque. 
+It does however allow re-raising the foreign exception using `resume_unwind` as follows:
+
+```rust
+let x: std::panic::ForeignPanic;
+std::panic::resume_unwind(x);
+```
+
+The following implicit coercion rules are added for coercing `extern "C"`
+function pointer types into `extern "C unwind"` types (note: the variance of
+`fn(T) -> U` is contravariant for `T` and covariant for `U`):
+
+```rust
+extern "C" fn c_fn0(x: extern "C" fn()) { ... }
+let a0: extern "C" fn(extern "C" fn()) = c_fn0; // OK(covariance)
+let b0: extern "C unwind" fn(extern "C" fn()) = a0; // OK(covariance)
+let c0: extern "C" fn(extern "C unwind" fn()) = a0; // ERROR(contravariance)
+
+extern "C" fn c_fn1(x: extern "C unwind" fn()) { ... }
+let a1: extern "C" fn(extern "C unwind" fn()) = c_fn1; // OK(covariance)
+let b1:extern "C unwind" fn(extern "C unwind" fn()) = a1; // OK(covariance)
+let c1:extern "C unwind"  fn(extern "C" fn()) = a1; // OK(contravariance)
+
+extern "C" fn c_fn2() -> extern "C" fn() { ... }
+let a2: extern "C" fn() -> extern "C" fn() = c_fn2; // OK(covariance)
+let b2: fn() -> extern "C" fn() = a2; // OK(covariance)
+let c2: extern "C" fn() -> fn() = a2; // OK(covariance)
+
+extern "C" fn c_fn3() -> extern "C unwind" fn() { ... }
+let a3: extern "C" fn() -> extern "C unwind" fn() = c_fn3; // OK(covariance)
+let b3: extern "C" fn() -> extern "C" fn() = a3; // ERROR(covariance)
+let c3: extern "C unwind" fn() -> extern "C unwind" fn() = a3; // OK(covariance)
+```
+
+## "C unwind" on `x86_64-unknown-linux-gnu` and `x86_64-apple-darwin`
+
+These platforms native Rust panics conform to the Itanium ABI. The high 4 bytes
+of the `exception_class` are `Rust` (the string is not null-terminated).
+
+In Rust, 
+
+* native "foreign" exceptions are all caught by `catch_unwind`, and according to
+the Itanium ABI the behavior of Rust programs that modify these exception
+objects is undefined. If a "foreign" exception reaches a thread boundary, the
+program `abort`s.
+
+* "forced" unwindings are not caught by `catch_unwind`; if a "forced" unwinding
+  reaches a thread boundary, the program `abort`s. Note: "forced" exceptions are
+  used by `longjmp` and thread cancellation in `pthread`s.
+
+> *Note*: The Itanium C++ ABI documents that, for C++, a Rust foreign exception can be
+> caught by either `catch(...)` or by `catch(__rust_exception)` if
+> `__rust_exception` is available in the `<exception>` header. If during unwinding
+> due to a Rust foreign exception, a C++ program throws, the behavior is
+> undefined.
+
+## "C unwind" on `x86_64-pc-windows-msvc` 
+
+TBD.
 
 # Drawbacks
 [drawbacks]: #drawbacks
 
-- Only works as long as the foreign code supports the same unwinding mechanism as Rust. (Currently, Rust and C++ code compiled for ABI-compatible backends use the same mechanism.)
+TBD.
 
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
-The goal is to enable the current use-cases for unwinding panics through foreign code while providing safer behaviour towards bindings not expecting that, with minimal changes to the language.
+Multiple alternatives have been considered:
 
-We should try not to prevent the RFC 2699 or other later RFC from resolving the above disadvantages on top of this one.
+1. Do not add a feature for this. This would require users to write shims for
+   all foreign APIs that could unwind to stop unwinding before entering Rust. It
+   was decided in [abort-on-FFI-boundary
+   behavior](https://github.com/rust-lang/rust/issues/52652) that the usability
+   cost of this solution was too high and a better solution was neede.
 
-- https://github.com/rust-lang/rfcs/pull/2699
+2. Add a "C panic" ABI string that unwinds with the Rust ABI. This solution
+   constraints the Rust unwinding implementation to be compatible with the C
+   ABI, and does not solve the problem of interfacing with libraries using the
+   platform's unwinding ABI.
+   
+3. Specify the Rust unwinding ABI on some platforms to match the native ABI and
+   add a "C panic" ABI. The main drawback is that this limits the changes that
+   could be made to the Rust unwinding ABI and the trade-offs of such a
+   limitation are not clear. This solution isn't zero cost either, since Rust
+   code that does not need to use "C unwind" would be paying a constraint on its
+   panic ABI for a feature that it does not use.
 
-The alternatives considered are:
-
-1. Stabilize the [abort-on-FFI-boundary behavior](https://github.com/rust-lang/rust/issues/52652)
-   without providing any mechanism to change this behavior. As a workaround for applications that would
-   otherwise need this unwinding, we would recommend the use of wrappers to translate Rust panics to
-   and from C ABI-compatible values at FFI boundaries, with a foreign control mechanism like
-   `setjmp`/`longjmp` or C++ exceptions to skip or unwind segments of foreign stack.
-
-   While using these types of wrappers will likely continue to be a recommendation for
-   maximally-compatible code, it comes with a number of downsides:
-
-   - Additional non-Rust code must be maintained.
-   - `setjmp`/`longjmp` incur runtime overhead even when no unwinding is required, whereas many
-     unwinding mechanisms incur runtime overhead only when unwinding.
-   - Wrappers that must be present at Rust compile time are not suitable for applications with
-     dynamic, generated code.
-
-   If an application has enough control over its compilers and runtime environment to be assured
-   that its foreign components are compatible with the unspecified Rust unwinding mechanism, these
-   downsides can be avoided by allowing unwinding across FFI boundaries.
-
-2. Address unwinding more thoroughly, perhaps through the introduction of additional `extern "ABI"`
-   strings. This is the approach being pursued in #2699, and is widely seen as a better long-term
-   solution than adding a single attribute. However, work in #2699 has stalled due to a number of
-   thorny questions that will likely take significant time and effort to resolve, such as:
-
-   - What should the syntax be for unwind-capable ABIs?
-   - What are the type system implications for new ABI strings?
-   - How should the semantics of an unwind-capable ABI be defined across different platforms?
-
-   In the meantime, we are caught between wanting to fix the soundness bug in Rust, and not wanting
-   to disrupt current development on a number of projects that depend on unwinding. Adding an unwind
-   attribute means that we can address those current needs right away, and then transition to
-   #2699's eventual solution by converting the attribute into a deprecated proc-macro.
-
-3. Using an attribute on function definitions and declarations to indicate that unwinding should be
-   allowed, regardless of the ABI string. This would be easy to implement, as there is currently
-   such an attribute in unstable Rust. An attribute is not a complete solution, though, as there is
-   no current way to syntactically attach an attribute to a function pointer type (see
-   https://github.com/rust-lang/rfcs/pull/2602). We considered making all function pointers
-   unwindable without changing the existing syntax, because Rust currently does not emit `nounwind`
-   for calls to function pointers, however this would require changes to the language reference that
-   would codify inconsistency between function pointers and definitions/declarations.
+4. Using an `#[unwind(allowed)]` attribute on `extern "C"` functions. This
+   solution treats function pointers to functions that can or cannot unwind via
+   a single function pointer type. That is, there is no way to avoid the
+   overhead of unwinding in, e.g., code-size, for those function pointers for
+   which the optimizer cannot statically prove that they always call functions
+   that do not unwind.
 
 # Prior art
 [prior-art]: #prior-art
@@ -240,9 +284,10 @@ TODO
 # Future possibilities
 [future-possibilities]: #future-possibilities
 
-TODO
-
-- https://github.com/rust-lang/rfcs/pull/2699
-
-- `unwind(abort)`
-- non-"C" ABIs
+If the Rust unwinding ABI were to change in the future in such a way that the
+translation cost from it to the "native Rust exception ABI", we could add a
+toolchain option to allow users to select between different implementations of
+the Rust `panic=unwind` strategy. For example, via `-C panic=unwind -C
+panic-unwind-impl=rust/native`. This would allow those users for which the
+translation is too expensive to opt-in to a better implementation for their
+applications.
