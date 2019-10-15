@@ -1,95 +1,147 @@
-- Feature Name: `simple_c_panic_abi`
-- Start Date: 2019-08-29
+- Feature Name: `c_unwind`
+- Start Date: 2019-10-15
 - RFC PR: [rust-lang/rfcs#0000](https://github.com/rust-lang/rfcs/pull/0000)
 - Rust Issue: [rust-lang/rust#0000](https://github.com/rust-lang/rust/issues/0000)
 
 # Summary
 [summary]: #summary
 
-* Create a project group for working out a "complete" (or "more complete") FFI unwind story 
-    * Sample use cases we may or may not support
-       * Rust panic that traverses native frames (and maybe caught by Rust code)
-       * Native exceptions that traverse Rust frames (and maybe caught by native code)
-    * Lots of annoying details about cross-platform differences to work out
-* This RFC adds `extern "C unwind"` attribute where all interesting interactions are "not yet specified"
-    * Intended to support the "native unwinding" mechanism (currently, DWARF on Linux, SEH on msvc)
-* The group expects to continue as follows:
-    * Rust panic traversing "no destructor" native frames:
-        * Lucet and mozjpeg require only Rust panics traversing "no-destructor" native frames
-    * Native panic traversing "no destructor" Rust frames:
-        * this *might* also make it possible to specify when longjmp
-          is safe (same condition), which would handle the Lua/Ruby
-          APIs, which expect to longjmp over "no-destructor" Rust
-          frames -- we would try to define that and give a useful
-          lint. Longjmp safety is not explicitly in scope except in so
-          far as it interacts with exception handling.
-    * Native exception traversing Rust frames with destructors
-* Known unknowns to be determined
-    * We may not be able to specify all of the above interactions in a fully cross platform way
-        * a possibility might be guaranteeing support for Tier 1 targets
-            * we could also lint against `extern "C unwind"` for targets where full support is not available
-        * for example, some targets may never support Rust panics traversing native frames
-* Possible smaller extensions
-    * relationships between ABIs (for now, can do `|| foo()`)
-    * further ABIs for specific unwinding mechanisms ("C SEH" etc)
-* Out of scope for this group
-    * Defining the Rust panic mechanism
-    * Exploring native mechanisms beyond DWARF, SEH (but we would want to consider possible complications)
-    * Enabling native code to catch Rust panics in a stable way
-    * Rust catching native exceptions
+This RFC adds a new Application Binary Interface (ABI) string `"C unwind"` that
+is only available on certain supported targets that provide a native C ABI that
+supports unwinding (e.g. `C` + `-fexceptions`).
+
+Functions with this ABI unwind using the native unwinding mechanism of the platform.
+
+This RFC adds support of this ABI for some tier-1 targets, but it is expected
+that support for this ABI will be added to more targets in the future, either in
+other RFCs that build on this one, or in FCPs.
 
 # Motivation
 [motivation]: #motivation
 
-We propose to create a "working group" (project group) dedicated to
-working out our FFI-unwind interop story. 
+On most mainstream platforms, the native platform ABI supports unwinding. This
+allows native applications on those platforms to expose APIs that unwind, and to
+call libraries whose APIs unwind. The `"C unwind"` ABI string allows defining
+Rust functions that can be called by other native libraries on that platform
+(written in Rust, or in other programming languages that support the ABI):
 
-TODO
+```rust
+// In Rust crate A:
+extern "C unwind" fn foo() { 
+    panic!("hello world");
+}
+```
 
-- soundness & optimization
-- libjpeg/mozjpeg
+as well as declaring and calling functions with such an ABI from Rust:
 
-## Generated code
+```rust
+// In Rust crate B, linked with Rust crate A:
+extern "C unwind" {
+    fn foo();
+}
 
-When working with generated code, such as the result of a JIT compiler, calls to generated code
-frequently must use the C ABI. Similarly to the `mozjpeg` case, we want it to be possible for panics
-to unwind across calls to foreign code. However the dynamic nature of the foreign code distinguishes
-this case from the `mozjpeg` case, specifically because the set of foreign functions that may be
-called is not known at Rust compile time.
+fn bar() {
+    let result = std::panic::catch_unwind(|| unsafe { foo() });
+    assert!(result.is_err());
+}
+```
 
-This property makes wrappers that use `setjmp`/`longjmp` or C++ exceptions much more difficult to
-generate, as we have no header files to provide to a wrapper generator like
-[`ffi_wrapper_nounwind`][ffi_wrapper_nounwind]. It further means that a solution must accommodate
-foreign function pointers that don't have an `extern "C" { ... }` declaration where we can attach an
-attribute.
+One example of a platform with a native ABI that supports unwinding is Linux,
+where section "6.2 Unwind Library Interface" of the [x86-64 ps-ABI] and the
+[Itanium ABI] specification document the ABI.
 
-[Lucet][lucet] and [Weld][weld] are two projects with these FFI use patterns that would concretely
-benefit from permitting unwinding through FFI boundaries.
+One example of a library API that uses unwinding on "its" API is [pthreads],
+which stands for POSIX threads. This library is available on many platforms. If
+you go to the section of its documentation called ["Cancellation
+points"][pthreads], there are dozens of functions like `open()`, `fsync()`,
+`sleep()` and so on marked as such. All these functions are currently imported
+into Rust by the `libc` library using the `extern "C"` ABI which is not allowed
+to unwind. Sadly, all of their declarations are unsound if a user uses
+`pthreads_cancel` (also exposed by `libc`) to cancel a thread, because that
+might cause any of these functions to unwind. As a consequence, [this example
+program](https://play.rust-lang.org/?version=nightly&mode=release&edition=2018&gist=e2d5a366754e6fd2d7406e2dcee8f7c0)
+has undefined behavior:
 
-[ffi_wrapper_nounwind]: https://docs.rs/ffi_wrapper_nounwind
-[lucet]: https://github.com/fastly/lucet
-[weld]: https://www.weld.rs/
+```rust
+struct DropGuard;
+impl Drop for DropGuard {
+    fn drop(&mut self) {
+        println!("unwinding foo");
+    }
+}
 
-## Less dependence on C/C++
+fn foo() {
+    let _x = DropGuard;
+    println!("thread started");
+    std::thread::sleep(std::time::Duration::new(1, 0));
+    println!("thread finished");
+}
 
-Some of the [proposed workarounds][cffi-panic] to the lack of cross-FFI unwinding require the use of
-wrappers written in C (for `setjmp` and `longjmp`) or C++ (for exceptions). This solution reduces
-the amount of non-Rust code that must be generated and maintained when the foreign code is
-compatible with the unspecified Rust unwinding mechanism.
+fn main() {
+    let handle0 = std::thread::spawn(foo);
+    std::thread::sleep(std::time::Duration::new(0, 10_000));
+    unsafe { 
+        let x = pthread_cancel(handle0.as_pthread_t());
+        assert_eq!(x, 0);
+    }
+    handle0.join();
+}
+```
 
-[cffi-panic]: https://github.com/gnzlbg/cffi-panic
+Depending on how you see it, the culprit here is either the `pthread_cancel`
+call, which will cause the `sleep` function to panic, or the declaration of the
+`sleep` function within the `libc` crate, which uses the `extern "C"` ABI which
+is not allowed to unwind.
+
+So the motivation of this RFC is that right now it is not possible to write Rust
+code that interfaces with native libraries that can unwind using the platforms
+native unwinding ABI, and such libraries are ubiquotous on all major platforms
+(recall, the `p` in `pthreads` stands for POSIX).
+
+[x86-64 ps-ABI]: https://github.com/hjl-tools/x86-psABI/wiki/X86-psABI
+[itanium]: https://itanium-cxx-abi.github.io/cxx-abi/abi.html
+[pthreads]: http://man7.org/linux/man-pages/man7/pthreads.7.html
 
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
 
-Rust function definitions with the `"C panic"` ABI string (e.g., `extern "C panic" fn`) are
-permitted to unwind with a panic, as opposed to `extern "C" fn` functions which will abort the
-process if a panic reaches the function boundary.
+This RFC introduces a new ABI string called `"C unwind"` on some specific
+targets. If this ABI is not available for a target, Rust will error at
+compile-time saying so. This RFC adds support of this ABI for some tier-1
+targets, but it is expected that support for this ABI will be added to more
+targets in the future, either in other RFCs that build on this one, or in FCPs.
 
-When used on declarations of imported functions (e.g., `extern "C panic" { fn ... }`) or function
-pointers (e.g., `extern "C panic" fn()`), the `"C panic"` ABI string means that if the function
-unwinds, the unwind will be propagated though any calling code. If an `extern "C"` imported function
-or function pointer unwinds, the behavior is undefined.
+Like for all other ABI strings, one can use this ABI string:
+
+  * to define a function in Rust: `extern "C unwind" fn foo() { }`
+  * to declare a function in Rust: `extern "C unwind" { fn foo(); }`
+  * in function pointer types: `let _: extern "C unwind" fn = foo;`
+
+Similarly to the `"Rust"` ABI string, `"C unwind"` functions can unwind:
+
+* if the `"C unwind"` function is defined in Rust, it unwinds the stack, and the
+  panic can be caught with `catch_unwind`.
+  
+* if the `"C unwind"` function is not defined in Rust, it unwinds the stack, but
+  whether such unwindings can always, sometimes, or never be caught with
+  `catch_unwind` or not is target-dependent. If some of these unwindings can be
+  caught, their value is then of type `std::panic::ForeignPanic` (that is, the
+  `Result::Err(Any)` that `catch_unwind` returns can be downcasted to such a
+  type).
+      * if the "panic-strategy" is set to `abort`, calling a `"C unwind"`
+  function that unwinds either aborts the program or 
+  
+
+When a `"C unwind"` function that is defined in Rust unwinds, the Rust panic is
+translated to a native panic at the function boundary. Calling a function with
+the `"C unwind"` ABI from Rust translates the native unwind into a Rust panic.
+
+When the native panics originate in Rust code, the translation back to Rust
+panics is lossless. 
+
+However, when the native panic 
+
+
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
