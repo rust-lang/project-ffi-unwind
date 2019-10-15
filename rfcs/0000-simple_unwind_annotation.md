@@ -174,13 +174,15 @@ panics crossing function boundaries with the `"C unwind"` ABI are translated
 back and forth from the Rust unwinding ABI to the "native Rust panic ABI" which
 comforms to the platform ABI. This translation might incur a cost on some
 platforms, and this cost might change over time as the Rust panic ABI evolves.
+If this were to happen, the ["Future Possibilties"][future-possibilities]
+section of this RFC has you covered.
 
-`"C unwind"` functions can unwind:
+In contrast with `"C"`, `"C unwind"` functions can unwind.
 
-* if the `"C unwind"` function is defined in Rust, it unwinds the stack, and the
+* If the `"C unwind"` function is defined in Rust, it unwinds the stack, and the
   panic can be caught with `catch_unwind`.
   
-* if the `"C unwind"` function is not defined in Rust, it unwinds the stack. 
+* If the `"C unwind"` function is not defined in Rust, it unwinds the stack. 
   * whether such unwindings can always, sometimes, or never be caught with
   `catch_unwind` or not is target-dependent. If some of these unwindings that do
   not originate in Rust can be caught, their value is then of type
