@@ -12,9 +12,9 @@ supports unwinding (e.g. `C` + `-fexceptions`).
 
 Functions with this ABI unwind using the native unwinding mechanism of the platform.
 
-This RFC adds support of this ABI for some tier-1 targets, but it is expected
-that support for this ABI will be added to more targets in the future, either in
-other RFCs that build on this one, or in FCPs.
+This RFC adds support of this ABI for most Rust targets with unwinding support,
+but it is expected that support for this ABI will be added to more targets in
+the future, either in other RFCs that build on this one, or in FCPs.
 
 # Motivation
 [motivation]: #motivation
@@ -123,9 +123,10 @@ JIT compilers like [Lucet][lucet] and [Weld][weld]: TODO (I'm not sure I underst
 
 This RFC introduces a new ABI string called `"C unwind"` on some specific
 targets. If this ABI is not available for a target, Rust will error at
-compile-time saying so. This RFC adds support of this ABI for some tier-1
-targets, but it is expected that support for this ABI will be added to more
-targets in the future, either in other RFCs that build on this one, or in FCPs.
+compile-time saying so. This RFC adds support of this ABI for most targets with
+unwinding support, but it is expected that support for this ABI will be added to
+more targets in the future, either in other RFCs that build on this one, or in
+FCPs.
 
 Like for all other ABI strings, one can use this ABI string:
 
@@ -161,11 +162,16 @@ this then behaves as if the panic would have never left Rust.
 
 The Rust panic ABI is unspecified. 
 
-This RFC introduced the `"C unwind"` ABI string for the following tier-1 targets:
+This RFC introduced the `"C unwind"` ABI string for the following targets:
 
-* `x86_64-unknown-linux-gnu`
-* `x86_64-pc-windows-msvc`
-* `x86_64-apple-darwin` 
+* all "Itanium-like" targets: `x86_64-unknown-linux-gnu`,
+  `i686-unknown-linux-gnu`, `x86_64-apple-darwin`, `aarch64-unknown-linux-gnu`,
+  `arm-unknown-linux-gnu`, etc.
+
+* Windows: `x86_64-pc-windows-msvc`, `i686-pc-windows-msvc` and
+  `x86_64-pc-windows-gnu`, `i686-pc-windows-gnu` (for the GNU targets, the ABI
+  will need to be made part of their target triple).
+
 
 On all other targets, usage of the `"C unwind"` generates a compilation error. 
 
@@ -232,7 +238,7 @@ let b3: extern "C" fn() -> extern "C" fn() = a3; // ERROR(covariance)
 let c3: extern "C unwind" fn() -> extern "C unwind" fn() = a3; // OK(covariance)
 ```
 
-## "C unwind" on `x86_64-unknown-linux-gnu` and `x86_64-apple-darwin`
+## "C unwind" on Itanium-like targets
 
 These platforms native Rust panics conform to the Itanium ABI. The high 4 bytes
 of the `exception_class` are set to the `Rust` string - this string is not
@@ -259,7 +265,7 @@ In Rust,
 > due to a Rust foreign exception, a C++ program throws, the behavior is
 > undefined.
 
-## "C unwind" on `x86_64-pc-windows-msvc` 
+## "C unwind" on Windows
 
 TBD.
 
