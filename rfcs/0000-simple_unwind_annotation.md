@@ -151,10 +151,10 @@ Similarly to the `"Rust"` ABI string, `"C unwind"` functions can unwind:
 
 The Rust panic ABI is unspecified. When a `"C unwind"` function that is defined
 in Rust unwinds, the Rust panic is translated to a "native Rust panic" which
-conforms to the native ABI. When a panic originates in Rust unwinds through a
-`"C unwind"` function call back into Rust, the translation is guaranteed to be
-lossless if the panic was not modified. That is, this behaves as if the panic
-would have never left Rust.
+conforms to the native ABI. When a panic that originates in Rust, unwinds
+through a `"C unwind"` function call back into Rust, the translation is
+guaranteed to be lossless _if the panic was not modified by non-Rust code_, and
+this then behaves as if the panic would have never left Rust.
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
