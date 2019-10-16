@@ -20,7 +20,7 @@
 - `setjmp`/`longjmp` across Rust frames is currently intended to have
   well defined behavior as long as those frames do not contain
   destructors, although we don't have any documentation to that
-  effect.
+  effect. See [rust-lang/unsafe-code-guidelines#210] for more details.
 - When crossing frames that do contain destructors, the behavior of
   `longjmp` is [Undefined Behavior]; conversely, a primary goal of
   defining cross-language unwinding behavior is to support crossing
@@ -53,3 +53,4 @@
 
 [roadmap-panic-abort]: roadmap/c-unwind-abi.md#panic--abort
 [Undefined Behavior]: /spec-terminology.md#UB
+[rust-lang/unsafe-code-guidelines#210]: https://github.com/rust-lang/unsafe-code-guidelines/issues/210
