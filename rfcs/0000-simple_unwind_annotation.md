@@ -280,7 +280,23 @@ TODO
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
 
-TODO
+## Lossless Rust panics through `"C unwind"`
+
+The text provides the following guarantee:
+
+> When a panic that originates in Rust, unwinds
+> through a `"C unwind"` function call back into Rust, the translation is
+> guaranteed to be lossless _if the panic was not modified by non-Rust code_, and
+> this then behaves as if the panic would have never left Rust.
+
+I'm not sure if we can uphold it on all targets that where `"C unwind"` makes
+sense, but we can provide it on all Itanium-like and probably the windows
+targets, so it might be a worth trade-off to just say that targets that `"C
+unwind"` is not available on targets that cannot support this.
+
+We could always add a different ABI string with weaker guarantees if Rust were
+to ever support any such target. This feature doesn't need to solve everybody's
+problems.
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
