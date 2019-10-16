@@ -17,11 +17,14 @@
 
 ### How does cross-language unwinding differ from cross-language `setjmp`/`longjmp`?
 
-- `setjmp`/`longjmp` across Rust frames is currently guaranteed to have
-  well defined behavior as long as those frames do not contain destructors.
-  When crossing frames that do contain deestructors, the  behavior of `longjmp`
-  is undefined; conversely, a primary goal of defining cross-language unwinding
-  behavior is to support crossing frames with destructors.
+- `setjmp`/`longjmp` across Rust frames is currently intended to have
+  well defined behavior as long as those frames do not contain
+  destructors, although we don't have any documentation to that
+  effect.
+- When crossing frames that do contain destructors, the behavior of
+  `longjmp` is undefined behavior; conversely, a primary goal of
+  defining cross-language unwinding behavior is to support crossing
+  frames with destructors.
 - Rust does not have a concept of `Copy` for stack-frames, which would permit
   the compiler to check that `longjmp` may safely traverse those frames. Such a
   language feature [may be added in the future][centril-effects], but although
