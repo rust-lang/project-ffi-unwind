@@ -22,7 +22,7 @@
   destructors, although we don't have any documentation to that
   effect.
 - When crossing frames that do contain destructors, the behavior of
-  `longjmp` is undefined behavior; conversely, a primary goal of
+  `longjmp` is [Undefined Behavior]; conversely, a primary goal of
   defining cross-language unwinding behavior is to support crossing
   frames with destructors.
 - Rust does not have a concept of `Copy` for stack-frames, which would permit
@@ -32,7 +32,7 @@
 - It should never be assumed that `drop` will be called for objects in
   intermediate frames traversed by a `longjmp`, but this may occur on certain
   platforms. Rust provides no guarantee either way (which is why this is
-  considered undefined behavior). Cross-language unwind, however, will be
+  considered [Undefined Behavior]). Cross-language unwind, however, will be
   defined such that `Drop` objects whose frames are unwound are guaranteed
   `drop`ed.
 - Unwinding across Rust frames when `panic = abort` is currently undefined
@@ -52,3 +52,4 @@
   roadmap][roadmap-panic-abort] for details.
 
 [roadmap-panic-abort]: roadmap/c-unwind-abi.md#panic--abort
+[Undefined Behavior]: /spec-terminology.md#UB
