@@ -15,7 +15,9 @@ behavior** to refer to illegal program actions that can result in
 arbitrary results. In short, "undefined behavior" is always a bug and
 never something you should do. See the [Rust
 reference](https://doc.rust-lang.org/reference/behavior-considered-undefined.html)
-for more details.
+and the [entry in the Unsafe Code Guidelines glossary][ucg-ub] for more details.
+
+[ucg-ub]: https://rust-lang.github.io/unsafe-code-guidelines/glossary.html#undefined-behavior
 
 Our usage of the term is generally the same as the [standard
 usage](https://en.wikipedia.org/wiki/Undefined_behavior) from other
