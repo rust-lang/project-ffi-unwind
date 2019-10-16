@@ -136,8 +136,8 @@ Like for all other ABI strings, one can use this ABI string:
 
 Similarly to the `"Rust"` ABI string, `"C unwind"` functions can unwind:
 
-* if the `"C unwind"` function is defined in Rust, it unwinds the stack, and the
-  panic can be caught with `catch_unwind`.
+* if the `"C unwind"` function is defined in Rust and the panic originates in
+  Rust, it unwinds the stack, and the panic can be caught with `catch_unwind`.
   
 * if the `"C unwind"` function is not defined in Rust, it unwinds the stack, but
   whether such unwindings can always, sometimes, or never be caught with
