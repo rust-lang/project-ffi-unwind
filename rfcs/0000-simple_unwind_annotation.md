@@ -133,10 +133,6 @@ Like for all other ABI strings, one can use this ABI string:
   * to define a function in Rust: `extern "C unwind" fn foo() { }`
   * to declare a function in Rust: `extern "C unwind" { fn foo(); }`
   * in function pointer types: `let _: extern "C unwind" fn = foo;`
-    * Since `"C unwind"` is a super-set of `"C"`, there are implicit coercions
-      from `extern "C"` function types to `extern "C unwind"` function types.
-      These are analogous to the coercion rules for safe `fn` types to `unsafe
-      fn` types.
 
 Similarly to the `"Rust"` ABI string, `"C unwind"` functions can unwind:
 
@@ -208,37 +204,6 @@ if let Err(x) = panic::catch_unwind(||...) {
        std::panic::resume_unwind(x);
     }
 }
-```
-
-The following implicit coercion rules are added for coercing `extern "C"`
-function pointer types into `extern "C unwind"` types (note: the variance of
-`fn(T) -> U` is contravariant for `T` and covariant for `U`):
-
-> **Note**: these rules are analogous to those of `fn` and `unsafe fn` pointer
-> types, where `fn` corresponds to `extern "C"` and `unsafe fn` corresponds to
-> `extern "C unwind"`.
-
-
-```rust
-extern "C" fn c_fn0(x: extern "C" fn()) { ... }
-let a0: extern "C" fn(extern "C" fn()) = c_fn0; // OK(covariance)
-let b0: extern "C unwind" fn(extern "C" fn()) = a0; // OK(covariance)
-let c0: extern "C" fn(extern "C unwind" fn()) = a0; // ERROR(contravariance)
-
-extern "C" fn c_fn1(x: extern "C unwind" fn()) { ... }
-let a1: extern "C" fn(extern "C unwind" fn()) = c_fn1; // OK(covariance)
-let b1:extern "C unwind" fn(extern "C unwind" fn()) = a1; // OK(covariance)
-let c1:extern "C unwind"  fn(extern "C" fn()) = a1; // OK(contravariance)
-
-extern "C" fn c_fn2() -> extern "C" fn() { ... }
-let a2: extern "C" fn() -> extern "C" fn() = c_fn2; // OK(covariance)
-let b2: fn() -> extern "C" fn() = a2; // OK(covariance)
-let c2: extern "C" fn() -> fn() = a2; // OK(covariance)
-
-extern "C" fn c_fn3() -> extern "C unwind" fn() { ... }
-let a3: extern "C" fn() -> extern "C unwind" fn() = c_fn3; // OK(covariance)
-let b3: extern "C" fn() -> extern "C" fn() = a3; // ERROR(covariance)
-let c3: extern "C unwind" fn() -> extern "C unwind" fn() = a3; // OK(covariance)
 ```
 
 ## "C unwind" on Itanium-like targets
@@ -319,6 +284,45 @@ TODO
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
+
+## Implicit function pointer type coercion from `extern "C"` to `extern "C unwind"`
+
+A `"C unwind"` function follows the `"C"` ABI but it also can unwind. It is,
+however, not required to unwind. That is a `"C"` function is also a `"C unwind"`
+function that just never unwinds.
+
+We could therefore add safe implicit coercions to the language from `extern "C"`
+function pointer types to `extern "C unwind"` ones. These implicit coercion
+rules are exactly the same as those of `unsafe fn` and `fn`, where in this
+analogy `unsafe fn` correspond to `extern "C unwind" fn` and `fn` to `extern "C"
+fn`.
+
+These rules are the following (note: the variance of
+`fn(T) -> U` is contravariant for `T` and covariant for `U`):
+
+```rust
+extern "C" fn c_fn0(x: extern "C" fn()) { ... }
+let a0: extern "C" fn(extern "C" fn()) = c_fn0; // OK(covariance)
+let b0: extern "C unwind" fn(extern "C" fn()) = a0; // OK(covariance)
+let c0: extern "C" fn(extern "C unwind" fn()) = a0; // ERROR(contravariance)
+
+extern "C" fn c_fn1(x: extern "C unwind" fn()) { ... }
+let a1: extern "C" fn(extern "C unwind" fn()) = c_fn1; // OK(covariance)
+let b1:extern "C unwind" fn(extern "C unwind" fn()) = a1; // OK(covariance)
+let c1:extern "C unwind"  fn(extern "C" fn()) = a1; // OK(contravariance)
+
+extern "C" fn c_fn2() -> extern "C" fn() { ... }
+let a2: extern "C" fn() -> extern "C" fn() = c_fn2; // OK(covariance)
+let b2: fn() -> extern "C" fn() = a2; // OK(covariance)
+let c2: extern "C" fn() -> fn() = a2; // OK(covariance)
+
+extern "C" fn c_fn3() -> extern "C unwind" fn() { ... }
+let a3: extern "C" fn() -> extern "C unwind" fn() = c_fn3; // OK(covariance)
+let b3: extern "C" fn() -> extern "C" fn() = a3; // ERROR(covariance)
+let c3: extern "C unwind" fn() -> extern "C unwind" fn() = a3; // OK(covariance)
+```
+
+## Toolchain flag to select the implementation of the Rust unwind ABI
 
 If the Rust unwinding ABI were to change in the future in such a way that the
 translation cost from it to the "native Rust exception ABI", we could add a
