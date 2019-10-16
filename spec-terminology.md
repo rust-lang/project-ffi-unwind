@@ -25,15 +25,22 @@ languages.
 
 <a name="LLVM-UB"></a>
 
-### LLVM-undefined behavior (LLVM-UB)
+## LLVM-undefined behavior (LLVM-UB)
 
-As a special case of undefined behavior, we use the phrase **LLVM
-undefined behavior** to indicate things that are considered undefined
-behavior by LLVM itself (as opposed to by the Rust compiler). There is
-no theoretical difference between UB and LLVM-UB -- both can cause
-arbitrary things to happen in your code. However, as a practical
-measure, LLVM-UB is worth distinguishing because it is much more
-*likely to* in practice.
+We use the phrase **LLVM undefined behavior** to indicate things that
+are considered undefined behavior by LLVM itself. Barring bugs, the
+Rust compiler should never produce LLVM IR that contains LLVM-UB
+unless the behavior in question is *also* UB in Rust. Of course, there
+are bugs in the Rust compiler from time to time, and hence it can
+happen that we generate LLVM IR which contains LLVM-UB even if the
+corresponding Rust source code is meant to be fully defined (see
+e.g. [rust-lang/rust#28728]).  The main reason it is worth separating
+LLVM-UB from the more general form of Rust UB is that, while both
+forms of UB can cause arbitrary things to happen in your
+code. However, as a practical measure, LLVM-UB is much more *likely
+to* in practice.
+
+[rust-lang/rust#28728]: https://github.com/rust-lang/rust/issues/28728
 
 <a name="unspecified"></a>
 
