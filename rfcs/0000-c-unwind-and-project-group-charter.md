@@ -178,7 +178,7 @@ fn foo() {
 
 ### Rust functions with C ABI
 
-In the case of Rust functions declared with the "C" ABI, attempts to
+In the case of Rust functions defined with the "C" ABI, attempts to
 unwind over the function boundary will result in an abort:
 
 ```rust
