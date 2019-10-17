@@ -17,11 +17,14 @@
 
 ### How does cross-language unwinding differ from cross-language `setjmp`/`longjmp`?
 
-- `setjmp`/`longjmp` across Rust frames is currently guaranteed to have
-  well defined behavior as long as those frames do not contain destructors.
-  When crossing frames that do contain deestructors, the  behavior of `longjmp`
-  is undefined; conversely, a primary goal of defining cross-language unwinding
-  behavior is to support crossing frames with destructors.
+- `setjmp`/`longjmp` across Rust frames is currently intended to have
+  well defined behavior as long as those frames do not contain
+  destructors, although we don't have any documentation to that
+  effect. See [rust-lang/unsafe-code-guidelines#210] for more details.
+- When crossing frames that do contain destructors, the behavior of
+  `longjmp` is [Undefined Behavior]; conversely, a primary goal of
+  defining cross-language unwinding behavior is to support crossing
+  frames with destructors.
 - Rust does not have a concept of `Copy` for stack-frames, which would permit
   the compiler to check that `longjmp` may safely traverse those frames. Such a
   language feature [may be added in the future][centril-effects], but although
@@ -29,7 +32,7 @@
 - It should never be assumed that `drop` will be called for objects in
   intermediate frames traversed by a `longjmp`, but this may occur on certain
   platforms. Rust provides no guarantee either way (which is why this is
-  considered undefined behavior). Cross-language unwind, however, will be
+  considered [Undefined Behavior]). Cross-language unwind, however, will be
   defined such that `Drop` objects whose frames are unwound are guaranteed
   `drop`ed.
 - Unwinding across Rust frames when `panic = abort` is currently undefined
@@ -49,3 +52,5 @@
   roadmap][roadmap-panic-abort] for details.
 
 [roadmap-panic-abort]: roadmap/c-unwind-abi.md#panic--abort
+[Undefined Behavior]: /spec-terminology.md#UB
+[rust-lang/unsafe-code-guidelines#210]: https://github.com/rust-lang/unsafe-code-guidelines/issues/210

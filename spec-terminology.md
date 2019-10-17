@@ -1,30 +1,88 @@
 # Terminology about specifications
 
-Language and platform specifications have several different terms used to
-describe how well-defined a language feature is, i.e., how well constrained the
-runtime behavior is.
+Language and platform specifications have several different terms used
+to describe how well-defined a language feature is, i.e., how well
+constrained the runtime behavior is. In cases where our terminology
+overlaps with that from other communities, we try to remain generally
+compatible.
 
-The ISO C and C++ standards distinguish several degrees of specification by
-assigning precise definitions to the following terms:
+<a name="UB"></a>
 
-* Well-defined behavior
-* Implementation-defined behavior
-* Unspecified behavior
-* Undefined behavior
+## Undefined Behavior
 
-Of these, only "undefined behavior" is used consistently within the Rust
-project; there are _no_ guarantees about the runtime behavior of such code.
+As is typical within the Rust community we use the phrase **undefined
+behavior** to refer to illegal program actions that can result in
+arbitrary results. In short, "undefined behavior" is always a bug and
+never something you should do. See the [Rust
+reference](https://doc.rust-lang.org/reference/behavior-considered-undefined.html)
+and the [entry in the Unsafe Code Guidelines glossary][ucg-ub] for more details.
 
-It is currently out of scope for this project to define the other terms in that
-list or their relationship to the corresponding terms in other languages.
-However, this project does distinguish a particular _category_ of undefined
-behavior:
+[ucg-ub]: https://rust-lang.github.io/unsafe-code-guidelines/glossary.html#undefined-behavior
 
-#### LLVM-undefined behavior (or LLVM-UB)
+Our usage of the term is generally the same as the [standard
+usage](https://en.wikipedia.org/wiki/Undefined_behavior) from other
+languages.
 
-Cases of known LLVM-UB are a specific subset of undefined behavior in general.
-Rust code with LLVM-UB will cause `rustc` to generate LLVM IR exhibiting
-undefined behavior.
+<a name="LLVM-UB"></a>
 
-This is distinct from the general case of Rust undefined behavior, in which
-it is unknown whether `rustc` will generate well-behaved LLVM IR.
+## LLVM-undefined behavior (LLVM-UB)
+
+We use the phrase **LLVM undefined behavior** to indicate things that
+are considered undefined behavior by LLVM itself. Barring bugs, the
+Rust compiler should never produce LLVM IR that contains LLVM-UB
+unless the behavior in question is *also* UB in Rust. Of course, there
+are bugs in the Rust compiler from time to time, and hence it can
+happen that we generate LLVM IR which contains LLVM-UB even if the
+corresponding Rust source code is meant to be fully defined (see
+e.g. [rust-lang/rust#28728]).  The main reason it is worth separating
+LLVM-UB from the more general form of Rust UB is that, while both
+forms of UB can cause arbitrary things to happen in your
+code. However, as a practical measure, LLVM-UB is much more *likely
+to* in practice.
+
+[rust-lang/rust#28728]: https://github.com/rust-lang/rust/issues/28728
+
+<a name="unspecified"></a>
+
+## Unspecified behavior
+
+We use the term "unspecified behavior" to refer to behavior that may
+vary across Rust releases, depending on what options are given to the
+compiler, or even -- in extreme cases -- across executions of the Rust
+compiler. However, unlike undefined behavior, the resulting execution
+is not completely undefined, and it must typically fall within some
+range of possibilities. Often, we will not specify precisely *how*
+something is implemented, but rather the patterns that must work.
+
+An example of "unspecified behavior" is the [layout for structs with
+no declared `#[repr]` attribute][ucg-struct].  This layout can and
+does change across Rust releases -- but of course within a given
+compilation, a struct must have *some* layout. Moreover, we guarantee
+that programs can (for example) use `sizeof` to determine the size of
+that layout, or access fields using Rust syntax like `foo.bar`. This
+requires the layout to be communicated in some fashion but doesn't
+specify how that is done.
+
+[ucg-struct]: https://github.com/rust-lang/unsafe-code-guidelines/blob/master/reference/src/layout/structs-and-tuples.md
+
+Our usage of the term is generally the same as the [standard
+usage](https://en.wikipedia.org/wiki/Unspecified_behavior) from other
+languages.
+
+<a name="TBD"></a>
+
+### To Be Defined Behavior (TBD)
+
+Internally to the ffi-unwind project group, we refer to a subset of
+Unspecified Behavior as **to be defined** or **TBD**. This simply
+means that this is behavior that we **expect** to specify as part of
+this group.
+
+This designation is not part of the "Rust reference" -- for "official"
+purposes, all TBD behavior is simply unspecified. In particular, if
+you find yourself relying on it, don't be surprised if it changes.
+But when writing official documentation, it is recommended to link to
+the ffi-unwind repository with a note like "this behavior is in the
+process of being specified; see the ffi-unwind repository for more
+details".
+

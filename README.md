@@ -7,7 +7,7 @@ support unwinding that crosses FFI boundaries.
   - [acfoltzer (Adam)](https://github.com/acfoltzer)
   - [batmanaod (Kyle)](https://github.com/batmanaod)
 - Rust lang team contacts:
-  - [nikmoatsakis (Niko)](https://github.com/nikmoatsakis)
+  - [nikomatsakis (Niko)](https://github.com/nikmoatsakis)
   - [joshtriplett (Josh)](https://github.com/joshtriplett)
 - [Our chat room][zulip-room]
 - [Our charter](charter.md)

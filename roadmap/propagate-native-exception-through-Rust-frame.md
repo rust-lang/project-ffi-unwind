@@ -24,7 +24,18 @@ In this case, the stack would look like this:
       +--- native function throws -+
 ```
 
+## Current status
+
+Currently, all details of how a "native exception" interacts with Rust
+frames are [To Be Defined] behavior. The goal of these roadmap items
+is to define some aspects of this behavior. Note that these
+definitions will be on a "per target" basis, as the details vary with
+the ABI.
+
 ## Possible properties of the Rust frames
+
+Even within a given target, it is worth separating out some different
+cases:
 
 * The Rust frame has **no in-scope destructors**.
   * We do not currently have a language or tooling mechanism for guaranteeing
@@ -35,14 +46,6 @@ In this case, the stack would look like this:
     our direct goals. See [the FAQ][FAQ-longjmp].
 * The Rust frame **has destructors** it would like to execute.
   * We need to define how they interact with a native exception.
-
-Currently, having a native exception "unwind" a Rust frame is
-**undefined behavior** in both of the above cases. However, we plan to
-specify the first case (no destructors) before we think about the more
-complex case (contains destructors). We will also have to specify this
-on a per-target basis, as the details will vary depending on what
-exception mechanism is in use, and what other non-exception features
-(such as `longjmp`) may use the same mechanism.
 
 [centril-effects]: https://github.com/Centril/rfc-effects/issues/11
 [FAQ-longjmp]: faq.md#how-does-cross-language-unwinding-differ-from-cross-language-setjmplongjmp
@@ -55,16 +58,20 @@ Rust frames:
 * Native frames - the native unwind re-enters native frames
   * The native code runtime should be able to treat this as a normal exception
     at this point, as though Rust had never been involved.
-* Thread boundary - the exception propagates all the way to a Rust frame that
-  was invoked from another thread
 * App entry point - the unwind is not caught and does not cross a thread
   boundary
+* Thread boundary - the exception propagates all the way to a Rust frame that
+  was invoked from another thread
 
-Again, these are all currenntly undefined.
+The first two possibilities (re-entering native frames or reaching the
+app entry point) are [To Be Defined] behavior.  Their behavior should
+be a natural consequence of how the `"C unwind"` ABI is defined.
 
-We **do** expect to make the first and last possibilities (re-entering native
-frames or reaching the app entry point) well-defined; their behavior should be
-a natural consequence of how the `"C unwind"` ABI is defined.
+The final possibility, wherein a native unwind propagates through Rust
+frames all the way to a thread boundary, is [Unspecified Behavior],
+meaning that we **do not** intend to define it.
 
-We **do not** currently have plans to define the middle case, wherein a native
-unwind propagates through Rust frames all the way to a thread boundary.
+[Undefined Behavior]: /spec-terminology.md#UB
+[LLVM-UB]: /spec-terminology.md#LLVM-UB
+[To Be Defined]: /spec-terminology.md#TBD
+[Undefined Behavior]: /spec-terminology.md#unspecified
