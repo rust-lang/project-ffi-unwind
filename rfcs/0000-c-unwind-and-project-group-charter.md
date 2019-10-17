@@ -158,7 +158,9 @@ expect the "project group" to largely define its own structure.
 
 Functions declared with the "C" ABI are not permitted to unwind.  In
 general, any attempt to unwind constitutes [Undefined Behavior], which
-means that the program may do arbitrary things.
+means that the program may do arbitrary things. Rust functions defined
+with the "C" ABI are guaranteed to abort if an unwind attempts to
+cross the function boundary.
 
 ### Invoking foreign functions
 
