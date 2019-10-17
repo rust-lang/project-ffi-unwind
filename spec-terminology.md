@@ -71,14 +71,18 @@ languages.
 
 <a name="TBD"></a>
 
-## To Be Defined Behavior (TBD)
+### To Be Defined Behavior (TBD)
 
-We refer to some behavior as **to be defined** to indicate that --
-while it is currently unspecified -- we *intend* to define that
-behavior at some point as part of this project group (though plans can
-change). This helps to define the scope of the group, but it also
-indicates behavior that you would be able to rely upon in the future.
-Note that TBD behavior is **still unspecified** until a formal
-decision is made, though, so if you rely on it today, your code may
-stop working or work differently under future releases of Rust (even
-if it compiles on the stable compiler).
+Internally to the ffi-unwind project group, we refer to a subset of
+Unspecified Behavior as **to be defined** or **TBD**. This simply
+means that this is behavior that we **expect** to specify as part of
+this group.
+
+This designation is not part of the "Rust reference" -- for "official"
+purposes, all TBD behavior is simply unspecified. In particular, if
+you find yourself relying on it, don't be surprised if it changes.
+But when writing official documentation, it is recommended to link to
+the ffi-unwind repository with a note like "this behavior is in the
+process of being specified; see the ffi-unwind repository for more
+details".
+
