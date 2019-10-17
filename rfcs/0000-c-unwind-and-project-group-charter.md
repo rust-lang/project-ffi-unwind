@@ -90,7 +90,7 @@ Moreover, Lucet executes only on a narrow range of platforms:
 
 ### mozjpeg: XXX
 
-XXX somebody fill this in XXX
+The `mozjpeg-rust` crate provides an idiomatic Rust wrapper over the `libjpeg` library. When this library errors, it calls a user-provided callback that is not allowed to return. The documentation mentions that this callback either aborts or `longjmp` somewhere. The `mozjpeg-rust` crates implements this callback to `panic!` instead, unwinding from the Rust callback into C, and then from C back into Rust.
 
 ### lua bindings and longjmp
 
