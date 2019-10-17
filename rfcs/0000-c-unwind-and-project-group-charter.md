@@ -136,7 +136,7 @@ This RFC proposes a multi-prong plan to solve this problem:
     * And perhaps to enable native exceptions to propagate across Rust frames
     * But not to allow catching or throwing native exceptions from Rust code
 
-The first two goals work together. We simul
+The first two goals work together.
 The goal of introducing the "C unwind" ABI is simple: it allows
 existing projects to migrate to the newer ABI and continue to work "as
 well as they ever did". In the meantime, we can tighten up the rules
