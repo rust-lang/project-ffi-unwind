@@ -139,7 +139,8 @@ This RFC proposes a multi-prong plan to solve this problem:
 The first two goals work together.
 The goal of introducing the "C unwind" ABI is simple: it allows
 existing projects to migrate to the newer ABI and continue to work "as
-well as they ever did". In the meantime, we can tighten up the rules
+well as they ever did" or better, since they will avoid certain optimizations
+that are incorrect for their use cases. In the meantime, we can tighten up the rules
 around the "C" ABI.
 
 Simply taking that step, however, does not address the root problem of
