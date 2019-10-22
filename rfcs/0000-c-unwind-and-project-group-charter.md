@@ -45,7 +45,7 @@ continuing to rely on behavior that is not yet fully specified).
 We have seen a number of cross-language unwinding use cases in the wild. This section
 details some of those use cases and their specific requirements.
 
-### Lucet: unwind past foreign frames
+### Lucet: unwind past foreign frames without destructors
 
 The **[Lucet]** compiler generates foreign frames that invoke Rust helpers.
 These frames are always invoked from some Rust helper.  From time to time, they
