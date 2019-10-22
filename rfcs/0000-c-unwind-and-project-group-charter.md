@@ -6,65 +6,51 @@
 # Summary
 [summary]: #summary
 
-* First, to modify Rust functions with the "C" abi to abort on unwinding, as proposed
-  in [rust-lang/rust#52652].
-* Second, to introduce the "C unwind" ABI, with virtually all details
-  (but not quite all) left as "to be determined".
-    * The **intent** of this ABI, however, is to permit Rust panics to
-      be "translated" into a "native" unwinding mechanism, though
-      precisely which is dependent on the target platform or other
-      compiler options.
-        * (In practice, this translation is a no-op, since Rust panics
-          use the native mechanism, but this is explicitly not
-          required for the future.)
-    * Folks currently using the "C" ABI to do unwinding can migrate to this new
-      "C unwind" ABI, which captures their intentions. Their code is no more stable
-      than it was, but they are on the right path.
-* Finally, to create a "project group" with the purpose of designing subsequent
-  RFCs to flesh out the details of the "C unwind" ABI
-    * The "project group" term is newly introduced, but it corresponds
-      to a kind of working group -- one with the goal of fleshing out
-      a particular proposal or completing a project.
-    * We aim to specify how "C unwind" works on major platforms
-    * Goal is to enable Rust panics to propagate across native frames
-    * And perhaps to enable native exceptions to propagate across Rust frames
-    * But not to allow catching or throwing native exceptions from Rust code
+* Rust functions with the "C" abi will (abort on unwinding)[rust-lang/rust#52652].
+* The "C unwind" ABI will be introduced with unspecified behavior but the
+  explicit intention to permit Rust panics to propogate through native frames
+* Announce "project group" with the purpose of designing subsequent RFCs to
+  flesh out the details of the "C unwind" ABI; invite interested Rustaceans to
+  join
 
 # Motivation
 [motivation]: #motivation
 
-## We have no FFI ABI that permits unwinding, and we need one
+## We have no FFI ABI that permits unwinding, and we need one.
 
 Rust has long held that the `extern "C"` ABI does not permit
 unwinding. Therefore, attempts to unwind through a `extern "C"`
 barrier are considered [Undefined Behavior]. However, in practice, a
-number of projects have found that "things work fine" so long as
-certain conditions are met (for example, the frames that are to be
-unwound do not contain destructors).
+number of projects have found that "things work fine" in certain cases, such as
+when unwinding over C code compiled with Clang using the `-fexceptions`
+compiler option.
 
-We have made a number of efforts to "tighten up" the behavior around
-the C ABI and unwinding. For example, when users define a Rust
+> XXX I don't believe we've ever seen improper destructor behavior when
+> exposing `panic`s.
+
+We have made a number of efforts to define the behavior around
+the C ABI and unwinding to be safer. For example, when users define a Rust
 function that has the C ABI, we would like to make such functions
 abort if unwinding actually occurs at runtime. Unfortunately, these
 attempts have caused existing, working projects to break.
 
 The problem here is not that the existing projects break *per se*: they
-are relying on [Undefined Behavior] and that is to be expected as a
+are relying on [Undefined Behavior], so breakage is to be expected as a
 possibility. The problem is that there is no alternative available to
-them that could allow them to keep working (even if they are
+them that would allow them to keep working (even if they are
 continuing to rely on behavior that is not yet fully specified).
 
 ## Specific use cases
 
-We have seen a number of unwinding use cases in the wild. This section
+We have seen a number of cross-language unwinding use cases in the wild. This section
 details some of those use cases and their specific requirements.
 
-### Lucet: unwind past empty native frames
+### Lucet: unwind past foreign frames
 
-The **[Lucet]** compiler generates native frames that invoke Rust
-helpers. These frames are always invoked from some Rust helper.  From
-time to time, they may invoke other Rust helpers, resulting in native
-frames "sandwiched" between two Rust frames:
+The **[Lucet]** compiler generates foreign frames that invoke Rust helpers.
+These frames are always invoked from some Rust helper.  From time to time, they
+may invoke other Rust helpers, resulting in foreign frames "sandwiched" between
+two Rust frames:
 
 [Lucet]: https://www.fastly.com/blog/announcing-lucet-fastly-native-webassembly-compiler-runtime
 
@@ -72,17 +58,24 @@ frames "sandwiched" between two Rust frames:
 [Rust root frame]
      |
      v
-[Native frames]
+[Foreign frames]
      |
      v
 [Rust helper function]
 ```
 
-This Rust helper function may panic. Lucet would like to be able to
-catch this panic from the Rust root frame. They would like to have the
-Native frames "gracefully unwind". However, the native frames
-themselves do not contain any destructors or landing pads -- they
-simply need to be "skipped over", in effect.
+This Rust helper function may panic. Lucet would like to be able to catch this
+panic from the Rust root frame. They would like to have the foreign frames
+"gracefully unwind". However, the foreign frames themselves do not contain any
+destructors; they simply need to be "skipped over".
+
+> XXX statement from Adam on destructors:
+
+> We want to uphold the property that destructors run on any Rust frames that may
+> exist when there's either a panic in a Rust hostcall, or when the Wasm guest
+> code faults. Whether the Wasm frames get unwound or just dropped is irrelevant
+> at this point, because as Niko mentioned there are no destructors on those
+> frames, just enough call frame information to let the unwinder do its thing.
 
 Moreover, Lucet executes only on a narrow range of platforms:
 
@@ -90,62 +83,75 @@ Moreover, Lucet executes only on a narrow range of platforms:
 
 ### mozjpeg: XXX
 
-The `mozjpeg-rust` crate provides an idiomatic Rust wrapper over the `libjpeg` library. When this library errors, it calls a user-provided callback that is not allowed to return. The documentation mentions that this callback either aborts or `longjmp` somewhere. The `mozjpeg-rust` crates implements this callback to `panic!` instead, unwinding from the Rust callback into C, and then from C back into Rust.
+The `mozjpeg-rust` crate provides an idiomatic Rust wrapper over the `libjpeg`
+library. When this library errors, it calls a user-provided callback that is
+not allowed to return. The documentation mentions that this callback either
+aborts or `longjmp` somewhere. The `mozjpeg-rust` crates implements this
+callback to `panic!` instead, unwinding from the Rust callback into C, and then
+from C back into Rust.
+
+> XXX this use-case also does involve foreign frames with destructors.
 
 ### lua bindings and longjmp
 
-Although longjmp/setjmp are not directly in scope for this group,
-there is an interesting interaction that was uncovered and is worth
-documenting. On Windows targets specifically, longjmp is implemented
-using the same "Structured Exception Handling" (SEH) mechanism that is
-used for C++ exceptions and other sorts of errors. As a result, in
-some versions of Rust at least, we found that attempts to longjmp over
-Rust frames triggered unwinding mechanisms. Note that in general a
-longjmp over a Rust frame that contains destructors is [Undefined
-Behavior] -- however, we would like to support longjmp for Rust frames
-that do not contain destructors. At minimum, this group should take
-the behavior of longjmp into account; if it is easy to do, we may also
-introduce mechanisms or RFCs that help to specify the use of longjmp
-in particular cases.
+Although `longjmp`/`setjmp` are not directly in scope for this group, there is an
+interesting interaction that was uncovered and is worth documenting. On Windows
+targets specifically, longjmp is implemented using the same "Structured
+Exception Handling" (SEH) mechanism that is used for C++ exceptions and other
+sorts of errors. As a result, in some versions of Rust at least, we found that
+attempts to longjmp over Rust frames triggered unwinding mechanisms. Note that
+in general a longjmp over a Rust frame that contains destructors is [Undefined
+Behavior] -- however, we would like to support longjmp for Rust frames that do
+not contain destructors. At minimum, this group should take the behavior of
+longjmp into account; if it is easy to do, we may also introduce mechanisms or
+RFCs that help to specify the use of longjmp in particular cases.
 
-## Our proposal
+> XXX refer to Alex Crichton's compiler PR https://github.com/rust-lang/rust/pull/48572?
 
-This RFC proposes a multi-prong plan to solve this problem:
+# Our proposal
+[our-proposal]: #our-proposal
+
+This RFC proposes three separate but related items:
 
 * First, to modify Rust functions with the "C" abi to abort on unwinding, as proposed
   in [rust-lang/rust#52652].
 * Second, to introduce the "C unwind" ABI, with virtually all details
   (but not quite all) left as "to be determined".
-    * The **intent** of this ABI, however, is to permit Rust panics to
-      be "translated" into a "native" unwinding mechanism, though
-      precisely which is dependent on the target platform or other
-      compiler options.
-        * (In practice, this translation is a no-op, since Rust panics
-          use the native mechanism, but this is explicitly not
-          required for the future.)
-    * Folks currently using the "C" ABI to do unwinding can migrate to this new
-      "C unwind" ABI, which captures their intentions. Their code is no more stable
-      than it was, but they are on the right path.
+  * The **intent** of this ABI is to permit Rust panics to be "translated" into
+    a "platform-native" unwinding mechanism, though the specific mechanism is
+    dependent on the target platform or other compiler options.
+  * (In practice, this translation is a no-op, since Rust panics always use the
+    native mechanism, but this is explicitly not required for the future.)
+  * Projects currently relying on unwinding via the "C" ABI should be migrated
+    to this new "C unwind" ABI, which will not abort on unwinding. The actual
+    behavior is not specified, but any changes to the behavior or the
+    specification will preserve the intent to permit safe unwinding.
 * Finally, to create a "project group" with the purpose of designing subsequent
   RFCs to flesh out the details of the "C unwind" ABI
-    * The "project group" term is newly introduced, but it corresponds
-      to a kind of working group -- one with the goal of fleshing out
-      a particular proposal or completing a project.
-    * We aim to specify how "C unwind" works on major platforms
-    * Goal is to enable Rust panics to propagate across native frames
-    * And perhaps to enable native exceptions to propagate across Rust frames
-    * But not to allow catching or throwing native exceptions from Rust code
+  * The "project group" term is newly introduced: it is a specific type of
+    working group whose goal is to flesh out a particular proposal or complete
+    a project.
+  * This working group plans to specify how "C unwind" works on major
+    platforms.
+  * The primary goal is to enable Rust panics to propagate safely across
+    foreign frames.
+  * A future goal may be to enable foreign exceptions to propagate across Rust
+    frames.
+  * We do not plan to allow catching or throwing foreign exceptions from Rust
+    code
 
-The first two goals work together.
 The goal of introducing the "C unwind" ABI is simple: it allows
 existing projects to migrate to the newer ABI and continue to work "as
 well as they ever did" or better, since they will avoid certain optimizations
-that are incorrect for their use cases. In the meantime, we can tighten up the rules
-around the "C" ABI.
+that are incorrect for their use cases. In the meantime, we can remove an
+instance of undefined behavior from the language by stabilizing the
+abort-on-unwind behavior fior the "C" ABI.
 
-Simply taking that step, however, does not address the root problem of
-"de facto" dependencies. We've already seen that projects can and do
-rely on unwinding.
+Simply taking that step, however, does not address the root problem of "de
+facto" reliance on undefined behavior. We've already seen that projects can and
+do rely on unwinding. We therefore consider the formation of the "project
+group" as a formal statement of intent that Rust will support cross-language
+unwinding.
 
 The majority of this RFC is spent on describing the "C unwind" ABI and
 its details. We do note a few details about the "project group", but we
@@ -156,25 +162,32 @@ expect the "project group" to largely define its own structure.
 
 ## The "C" ABI and unwinding
 
-Functions declared with the "C" ABI are not permitted to unwind.  In
-general, any attempt to unwind constitutes [Undefined Behavior], which
-means that the program may do arbitrary things. Rust functions defined
-with the "C" ABI are guaranteed to abort if an unwind attempts to
-cross the function boundary.
+Functions declared with the "C" ABI are not permitted to unwind. Unwinding out
+of these functions constitutes [Undefined Behavior], which means that the
+program may do arbitrary things. Rust functions defined with the "C" ABI are
+guaranteed to abort if a `panic` attempts to cross the function boundary; this
+behavior is well-defined.
+
+> XXX "forced exceptions" (such as `longjmp` on Windows) don't trigger the
+> abort. Can _any_ foreign exceptions trigger the `abort`? See discussion in
+> https://github.com/rust-lang/rust/issues/65646
+
+> XXX ...but also, `longjmp` style unwinding is _not_ UB, contrary to the
+> second sentence here.
 
 ### Invoking foreign functions
 
-This means, for example, that if you invoke a native "C" function and it
-attempts to unwind (for example, because it invokes C++ code which contains a `throw`),
-this result is [Undefined Behavior]:
+If you invoke a foreign function using `extern "C"` and it attempts to unwind
+(for example, because it invokes C++ code which contains a `throw`), your
+program has [Undefined Behavior]:
 
 ```rust
-extern "C" { fn fn_that_is_not_supposed_to_unwind(); }
+extern "C" { fn should_not_unwind(); }
 
 fn foo() {
-    // If `fn_that_is_not_supposed_to_unwind` should actually unwind, 
-    // the result is undefined behavior.
-    fn_that_is_not_supposed_to_unwind();
+    // If `should_not_unwind` actually does unwind,
+    // it causes undefined behavior.
+    should_not_unwind();
 }
 ```
 
@@ -186,7 +199,7 @@ unwind over the function boundary will result in an abort:
 ```rust
 extern "C" fn foo() {
     // This panic will trigger an unwind that tries to pass over an extern "C" 
-    // boundary. It will trigger an abort.
+    // boundary, which will automatically trigger an abort.
     panic!();
 }
 ```
@@ -200,11 +213,14 @@ mechanism used by other systems programming language implementations,
 such as C++.
 
 **WARNING:** The specifiation for the "C unwind" ABI is being actively
-developed and is currently very incomplete. In particular, it is **not
-currently possible to unwind between Rust and non-Rust frames in a
-fully specified fashion**. If you would like to learn more about the
-specification effort, or to get involved, please visit the repository
-for the [ffi-unwind project], which contains a lot more details.
+developed and is currently very incomplete. In particular, **the behavior of an
+unwinding operation between Rust and non-Rust frames is not fully specified.**
+If you would like to learn more about the specification effort, or to get
+involved, please visit the repository for the [ffi-unwind project], which
+contains a lot more details.
+
+> XXX maybe just refer to the 'project group' section rather than linking to
+> the repo here?
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
@@ -213,31 +229,29 @@ for the [ffi-unwind project], which contains a lot more details.
 
 In general, the behavior of both the "C" and the "C unwind" ABIs is
 highly dependent on the target triple and other switches that are
-given to the Rust compiler. Therefore, there isn't a lot that can be
-said that is fully independent of the platform.
+given to the Rust compiler. Most of the details are therefore implementation-
+and platform-specific.
 
 ## Relationship between "C" and "C unwind"
 
-There is no a priori relationship between the "C" and "C unwind" ABIs.
-However, on most platforms, it is expected that the "C" ABI would be
-"compatible" with the "C unwind" ABI. In other words, consider some C
-function `foo` that does not unwind: on most platforms, such a
-function could safely be invoked with either the "C" or the "C unwind"
-ABI. 
+There is no *a priori* relationship between the "C" and "C unwind" ABIs.
+However, it is expected that on most platforms, foreign functions that do not
+unwind could safely be invoked with either the "C" or the "C unwind" ABI. 
 
-However, we do not guarantee such interop: this leaves room for
-platforms where unwinding is transmitted through a special return
-value or other such mechanism. (XXX do any such platforms exist? There
-is the C++ proposal)
+Rust, however, does not guarantee any particular compatibility between the two
+ABIs; this leaves room for platforms where unwinding is transmitted through a
+special return value or other such mechanism.
+
+> Niko XXX do any such platforms exist? There is the C++ proposal
+> XXX also a Cranelift proposal linked in RFC #2699.
 
 ## Typing and interconversion
 
 Function pointer types declared with the "C unwind" and "C" ABIs are
-generally incompatible, just as they would be with any other two ABIs
-(e.g., "stdcall" and "C"). It is not possible, for example, to cast a
-`extern "C" fn()` value into a `extern "C unwind" fn()` value. It is
-however possible to convert between ABIs by using a closure expression
-(which is then coerced into a standalone function):
+incompatible, just as any other two ABIs are (e.g., "stdcall" and "C"). It is
+not possible, for example, to cast a `extern "C" fn()` value into a `extern "C
+unwind" fn()` value. It is however possible to convert between ABIs by using a
+closure expression (which is then coerced into a standalone function):
 
 ```rust
 fn convert(f: extern "C" fn()) -> extern "C unwind" fn() {
@@ -250,11 +264,11 @@ fn convert(f: extern "C" fn()) -> extern "C unwind" fn() {
 It is an explicit goal *not* to constrain or specify the unwinding
 mechanism used by Rust functions with the standard Rust ABI. We do
 require, however, that *some* mechanism exists to "convert" a Rust
-panic into the native unwinding mechanism when crossing over the "C
-unwind" ABI. Similarly, when a Rust function invokes a "C panic"
+panic into the native unwinding mechanism when exposed by the `"C
+unwind"` ABI. Similarly, when a Rust function invokes a `"C unwind"`
 function, some mechanism must exist to "recover" a Rust panic on the
 other side. In other words, a **Rust panic** must be able to unwind
-across a "C unwind" boundary in a seamless fashion.
+across a `"C unwind"` boundary in a seamless fashion.
 
 Therefore, the following program is guaranteed to work as expected:
 
@@ -276,10 +290,13 @@ if in the future:
 * we specify the behavior of "C unwind" on some platform
 * Rust's panic mechanism on that platform diverges from this behavior
 
-then it would be required that some form of "interop conversion" be
+then it will be required that some form of "interop conversion" be
 defined as well.
 
 # Workings of the "ffi-unwind" project group
+
+> XXX link to project-group repo here; but only if it has been cloned into
+> `rust-lang`
 
 ## What is a "project group"?
 
@@ -495,5 +512,6 @@ The project group will of course explore the full specification of the "C unwind
 Other future possibilities 
 
 [Undefined Behavior]: https://doc.rust-lang.org/reference/behavior-considered-undefined.html
+> XXX move project repo to rust-lang before posting RFC?
 [ffi-unwind project]: https://github.com/nikomatsakis/project-ffi-unwind
 [rust-lang/rust#52652]: https://github.com/rust-lang/rust/issues/52652
