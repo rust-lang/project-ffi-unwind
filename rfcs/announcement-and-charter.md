@@ -75,8 +75,32 @@ behest of an official Rust team. Project groups must have:
   charter and instructions for how community members can monitor the group's
   progress and/or participate.
 
-[This blog post][shepherds-blogpost] explains in detail the role of the
+[This blog post][shepherds-3.0] explains in detail the role of the
 shepherds.
+
+## Project group roadmap and RFCs
+
+The first step of the project group is to define a **roadmap** indicating the
+planned sequence in which it will design and propose particular behaviors and
+features.  Once the project group feels it has completed work on some item in
+the roadmap, that item will be submitted to the community as an RFC or FCP.
+
+## Stabilizing unspecified "TBD" behavior
+[stabilizing-tbd]: stabilizing-unspecified-tbd-behavior
+
+We would like to be able to provide features in stable Rust without a full
+formal specification but with an informal statement of intent regarding the
+behavior. These features would be considered "unspecified behavior" (rather
+than "undefined behavior"), and their behavior would therefore be subject to
+some change, but such a change would be guaranteed not to violate the project
+group's stated intent for the feature.
+
+Internally, a project group should refer to such unspecified behavior as "TBD",
+to indicate that refining the specification of the behavior is within the scope
+of the project. Outside of the context of the project group, such as in general
+reference material for the language, the behavioral intent as determined by the
+project group should be described, but will not imply any special status
+compared to other instances of unspecified behavior in the language.
 
 ## Details of the FFI-unwind project group
 
@@ -119,17 +143,7 @@ considerations:
   in particular, the project group must not propose a design that would
   constrain Rust's unwinding implementation.
 
-## Project group roadmap and RFCs
-
-The first step of the project group is to define a **roadmap** indicating the
-planned sequence in which it will design and propose particular behaviors and
-features. The FFI-unwind project repository contains a draft version of the
-roadmap.
-
-Once the project group feels it has completed work on some item in the roadmap,
-that item will be submitted to the community as an RFC or FCP.
-
-## Participation in the project group
+### Participation in the project group
 
 Like any Rust group, the FFI-unwind project group intends to operate
 in a public and open fashion and welcomes participation. Visit the
@@ -138,16 +152,31 @@ in a public and open fashion and welcomes participation. Visit the
 # Drawbacks
 [drawbacks]: #drawbacks
 
-> XXX ???
-
-- change in existing status quo for feature development
-- stabilization of "TBD" features may be surprising or encourage reliance on
-  unspecified behavior
+* The adoption of project groups for major language design efforts is a change
+  in the status quo. We believe that this change will be an improvement over
+  the current RFC-centric process, but we should be wary of unintended
+  consequences of from such a change.
+* [Stabilization of "TBD" features][stabilizing-tbd] may be surprising or
+  confusing to users, and it will encourage reliance on (some) unspecified
+  behavior.
 
 # Prior art
 [prior-art]: #prior-art
 
-> XXX blog posts, Discord discussion, governance-wg....
+Although the term "project group" is new, some existing efforts, such as the
+Unsafe Code Guidelines effort and the work around defining const evaluation,
+were organized in a similar fashion.
+
+In addition to the [blog post Niko Matsakis][shepherds-3.0] about
+shepherding, James Munns wrote a [more formal shepherding
+proposal][shepherding-3.1].
+
+The [governance WG][governance-wg] and [lang-team meta working
+group][lang-meta-wg] were both formed at least in part to improve the process
+for large-scale design efforts. One existing proposal is for ["staged
+RFCs"][staged-rfc]; this may be considered a precursor to the current
+"shepherded project group" proposal.
+
 
 # Unresolved questions and Future possibilities
 [unresolved-questions]: #unresolved-questions
@@ -175,5 +204,9 @@ potential exploration. Three noteworthy examples are:
 [abort-unwind]: https://github.com/rust-lang/rust/issues/52652
 > XXX move project repo to rust-lang before posting RFC?
 [ffi-unwind project]: https://github.com/nikomatsakis/project-ffi-unwind
-[shepherds-blogpost]: http://smallcultfollowing.com/babysteps/blog/2019/09/11/aic-shepherds-3-0/
+[shepherds-3.0]: http://smallcultfollowing.com/babysteps/blog/2019/09/11/aic-shepherds-3-0/
 [c-cpp-unified-proposal]: http://open-std.org/JTC1/SC22/WG21/docs/papers/2018/p1095r0.pdf
+[shepherding-3.1]: https://jamesmunns.com/blog/shepherding-3-1/
+[governance-wg]: https://github.com/rust-lang/wg-governance
+[lang-meta-wg]: https://github.com/rust-lang/lang-team/tree/master/working-groups/meta
+[staged-rfc]: http://smallcultfollowing.com/babysteps/blog/2018/06/20/proposal-for-a-staged-rfc-process/
