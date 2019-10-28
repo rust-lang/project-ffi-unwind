@@ -202,8 +202,7 @@ potential exploration. Three noteworthy examples are:
 
 [Undefined Behavior]: https://doc.rust-lang.org/reference/behavior-considered-undefined.html
 [abort-unwind]: https://github.com/rust-lang/rust/issues/52652
-> XXX move project repo to rust-lang before posting RFC?
-[ffi-unwind project]: https://github.com/nikomatsakis/project-ffi-unwind
+[ffi-unwind project]: https://github.com/rust-lang/project-ffi-unwind
 [shepherds-3.0]: http://smallcultfollowing.com/babysteps/blog/2019/09/11/aic-shepherds-3-0/
 [c-cpp-unified-proposal]: http://open-std.org/JTC1/SC22/WG21/docs/papers/2018/p1095r0.pdf
 [shepherding-3.1]: https://jamesmunns.com/blog/shepherding-3-1/
