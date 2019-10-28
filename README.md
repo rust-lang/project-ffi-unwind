@@ -21,7 +21,7 @@ support unwinding that crosses FFI boundaries.
 # Contributing
 
 We do not have a formal concept of membership. Please feel free to join our
-[Zulip chat room](zulip-room) or to open a GitHub Issues and/or Pull Request.
+[Zulip chat room][zulip-room] or to open a GitHub Issues and/or Pull Request.
 
 # ffi-unwind table
 
