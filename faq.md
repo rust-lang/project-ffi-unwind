@@ -51,6 +51,6 @@
 - One more concern is how `panic = abort` will be handled; please refer to [the
   roadmap][roadmap-panic-abort] for details.
 
-[roadmap-panic-abort]: roadmap/c-unwind-abi.md#panic--abort
+[roadmap-panic-abort]: planning/roadmap/c-unwind-abi.md#panic--abort
 [Undefined Behavior]: /spec-terminology.md#UB
 [rust-lang/unsafe-code-guidelines#210]: https://github.com/rust-lang/unsafe-code-guidelines/issues/210

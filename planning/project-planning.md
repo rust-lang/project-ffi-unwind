@@ -2,7 +2,7 @@
 
 1. [x] Make a [draft charter](charter.md) for the project
 1. [x] Create a Zulip channel
-1. [ ] Close RFCs #2753 and #2699 and point to this repository and the Zulip channel
+1. [x] Close RFCs #2753 and #2699 and point to this repository and the Zulip channel
 1. [ ] Create design documents and drafts in this repo
    * create a "sketch" document to start, fill it in over time
 1. [ ] Create issues for the outstanding concerns

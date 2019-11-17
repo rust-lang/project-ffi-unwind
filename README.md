@@ -13,7 +13,7 @@ support unwinding that crosses FFI boundaries.
 - [Our charter](charter.md)
 - [Our project planning](project-planning.md)
 - [Cross-language unwinding FAQ](faq.md)
-- [Technical roadmap](roadmap/)
+- [Technical roadmap](planning/roadmap/)
 
 [shepherds-blog]: http://smallcultfollowing.com/babysteps/blog/2019/09/11/aic-shepherds-3-0/
 [zulip-room]: https://rust-lang.zulipchat.com/#narrow/stream/210922-wg-ffi-unwind/topic/welcome/near/177543226
@@ -47,6 +47,6 @@ We do not have a formal concept of membership. Please feel free to join our
 | catch Rust panic within native code | :no_entry_sign: | :no_entry_sign: | :no_entry_sign: | :no_entry_sign: |
 | catch native exception within Rust code | :no_entry_sign: | :no_entry_sign: | :no_entry_sign:  | :no_entry_sign: |
 
-["C unwind" ABI]: roadmap/c-unwind-abi.md
-[propagate Rust panic through native frame]: roadmap/propagate-rust-panic-through-native-frame.md
-[propagate native exception through Rust frame]: roadmap/propagate-rust-panic-through-native-frame.md
+["C unwind" ABI]: planning/roadmap/c-unwind-abi.md
+[propagate Rust panic through native frame]: planning/roadmap/propagate-rust-panic-through-native-frame.md
+[propagate native exception through Rust frame]: planning/roadmap/propagate-rust-panic-through-native-frame.md
