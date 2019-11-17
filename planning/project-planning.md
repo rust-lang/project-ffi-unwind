@@ -10,7 +10,7 @@
    * unsafe code guidelines just used "focus" labels, maybe do that
    * or maybe use time-based issues (woah!) where the sync meeting marks a
      "pause" to collect, incorporate new findings, and set new topics
-1. [ ] Open a new RFC for `extern "C unwind"`
+1. [ ] ~~Open a new RFC for `extern "C unwind"`~~
 
 ## Goals
 
