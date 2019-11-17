@@ -11,9 +11,10 @@ support unwinding that crosses FFI boundaries.
   - [joshtriplett (Josh)](https://github.com/joshtriplett)
 - [Our chat room][zulip-room]
 - [Our charter](charter.md)
-- [Our project planning](project-planning.md)
 - [Cross-language unwinding FAQ](faq.md)
-- [Technical roadmap](planning/roadmap/)
+- [Our project planning](planning/project-planning.md)
+- [Technical items in scope (table)](planning/scope-by-platform-table.md)
+- [Technical items on our roadmap](planning/roadmap/)
 
 [shepherds-blog]: http://smallcultfollowing.com/babysteps/blog/2019/09/11/aic-shepherds-3-0/
 [zulip-room]: https://rust-lang.zulipchat.com/#narrow/stream/210922-wg-ffi-unwind/topic/welcome/near/177543226
