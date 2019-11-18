@@ -2,10 +2,23 @@
 
 ## Summary
 
+### The problem
+
 Functions that use the plain `"C"` ABI are **not permitted to unwind**.
 Doing so is [Undefined Behavior], which means that the compiler is free
 to assume it cannot happen. The results are therefore unpredictable.
 It is always a bug.
+
+We would like the behavior to no longer be undefined. We are considering
+[different options](extern-c-behavior) for this.
+
+[extern-c-behavior]: https://hackmd.io/JIsPlpIPR2yTC051m4Mliw
+[//]: # (TODO: move HackMD doc into this repo.)
+
+The remainder of this document examines the `"C unwind"` proposal, which would
+be an explicit way of opting-in to unwinding across FFI boundaries.
+
+### The proposed ABI
 
 We are adding therefore a new ABI `"C unwind"`. This ABI can be used
 to indicate functions that follow the C ABI and which **may** unwind.

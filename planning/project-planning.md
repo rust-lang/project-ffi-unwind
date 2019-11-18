@@ -10,16 +10,17 @@
    * unsafe code guidelines just used "focus" labels, maybe do that
    * or maybe use time-based issues (woah!) where the sync meeting marks a
      "pause" to collect, incorporate new findings, and set new topics
-1. [ ] ~~Open a new RFC for `extern "C unwind"`~~
+1. [ ] Finish `extern "C"` alternatives write-up and add it to project repo
 
 ## Goals
 
 * Initial:
-  * complete the "C unwind" RFC (a clean start to #2753)
   * refine charter to create a roadmap
     * what are the bits of unspecified behavior yet to be fixed
     * which use cases are we aiming at and which are non-goals?
     * which bits of unspecified behavior must be specified
+ * seek consensus on `extern "C"` behavior: maintain plan to stabilize
+   `abort`-on-unwind?
 * Subsequent:
   * work through those bits of unspecified behavior and work toward a final design
 
