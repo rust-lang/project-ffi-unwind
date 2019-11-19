@@ -2,7 +2,7 @@
 
 1. [x] Make a [draft charter](charter.md) for the project
 1. [x] Create a Zulip channel
-1. [ ] Close RFCs #2753 and #2699 and point to this repository and the Zulip channel
+1. [x] Close RFCs #2753 and #2699 and point to this repository and the Zulip channel
 1. [ ] Create design documents and drafts in this repo
    * create a "sketch" document to start, fill it in over time
 1. [ ] Create issues for the outstanding concerns
@@ -10,7 +10,7 @@
    * unsafe code guidelines just used "focus" labels, maybe do that
    * or maybe use time-based issues (woah!) where the sync meeting marks a
      "pause" to collect, incorporate new findings, and set new topics
-1. [ ] Open a new RFC for `extern "C unwind"`
+1. [ ] Finish `extern "C"` alternatives write-up and add it to project repo
 1. [ ] Seek input from other language designers & communities
    1. [x] Zig - designer should have time after Thanksgiving
    1. [ ] [Others](zulip-other-languages)
@@ -20,11 +20,12 @@
 ## Goals
 
 * Initial:
-  * complete the "C unwind" RFC (a clean start to #2753)
   * refine charter to create a roadmap
     * what are the bits of unspecified behavior yet to be fixed
     * which use cases are we aiming at and which are non-goals?
     * which bits of unspecified behavior must be specified
+ * seek consensus on `extern "C"` behavior: maintain plan to stabilize
+   `abort`-on-unwind?
 * Subsequent:
   * work through those bits of unspecified behavior and work toward a final design
 
