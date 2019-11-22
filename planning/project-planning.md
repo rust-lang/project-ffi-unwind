@@ -11,6 +11,11 @@
    * or maybe use time-based issues (woah!) where the sync meeting marks a
      "pause" to collect, incorporate new findings, and set new topics
 1. [ ] Finish `extern "C"` alternatives write-up and add it to project repo
+1. [ ] Seek input from other language designers & communities
+   1. [x] Zig - designer should have time after Thanksgiving
+   1. [ ] [Others](zulip-other-languages)
+
+[zulip-other-languages]: https://rust-lang.zulipchat.com/#narrow/stream/210922-wg-ffi-unwind/topic/Input.20from.20other.20language.20designers.20.26.20communities/near/180385809
 
 ## Goals
 
