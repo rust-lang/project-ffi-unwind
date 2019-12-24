@@ -45,20 +45,46 @@ Currently, Rust and C++ running in the same process space share the same
 runtime and the same unwinding mechanism. The ability to unwind across language
 boundaries has been used successfully in some crates despite the danger of
 exploiting undefined behavior.
-<!-- XXX mention `mozjpeg` or others? -->
+<!-- TODO mention `mozjpeg` or others? -->
 But this code is not merely theoretically incorrect; it has also been broken in
 practice by changes to Rust's code generation.
-<!-- XXX be more specific, or leave this vague? -->
+<!-- TODO be more specific, or leave this vague? -->
 
 There are, however, some valid use cases that are impossible or impracticable
 without some form of cross-language unwinding.
-<!-- XXX examples? Lucet? XXX what would an MVP be? -->
+<!-- TODO examples? Lucet? -->
+
+The minimum feature set needed to safely enable these uses cases is a
+well-defined way to let Rust `panic`s "escape" `extern` Rust functions, and
+permit them to re-enter Rust code via non-Rust functions declared in Rust with
+`extern`. The project's first technical RFC will propose a specification for
+these abilities.
 
 ## Defaults matter: Finalizing the behavior of `extern "C"`
 
+As usual when adding new features to Rust, we would like to avoid breaking
+changes if possible. We have discussed numerous possible non-breaking
+_additions_ to the language that would enable users to explicitly select the
+desired behavior for unwinding across FFI boundaries. But since the existing
+`extern "C"` function declaration syntax (and any other non-Rust ABI
+specification) is not explicit, we believe that selecting a default behavior
+for cross-FFI `panic`s would be preferable to leaving it undefined.
+
+The original plan, pre-existing the project group by several years, is to make
+Rust functions defined with `extern "C"` immediately `abort` if a `panic` would
+otherwise unwind out of the function. This was actually implemented and the
+behavior introduced to stable Rust twice, once in <!-- TODO version --> and
+again in <!-- TODO version -->. The change was reverted both times, however,
+because it breaks the only currently-working method for unwinding from Rust
+into other languages.
+
+<!-- TODO other options -->
+
 ### The discussion so far
 
-Defining a specific unwinding implementation is overly limiting for Rust's development, so the project group is not authorized to simply declare ... <!-- XXX -->
+Defining a specific unwinding implementation is overly limiting for Rust's
+development, so the project group is not authorized to simply declare ...
+<!-- TODO -->
 
 ### Gathering metrics with a `rustc` fork
 
