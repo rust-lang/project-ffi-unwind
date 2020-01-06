@@ -1,4 +1,4 @@
-# Help the FFI-unwind project!
+# Announcing the first FFI-unwind project design meeting
 
 -- Kyle Strand and Niko Matsakis on behalf of the FFI-unwind project group --
 
@@ -6,12 +6,34 @@ The FFI-unwind project group, announced in [this RFC][rfc-announcement], is
 working to extend the language to support unwinding that crosses FFI
 boundaries.
 
-We have been exploring the problem space, but we would like to begin making
-some concrete decisions. Before publishing our first technical RFC, we are
-extending a broader invitation to the Rust community to join our discussions
-and help us guage the impact of the tradeoffs under consideration.
+We have reached our first technical decision point, on a question we have been
+discussing internally for quite a while.  This blog post lays out the arguments
+on each side of the issue and invites the Rust community to join us at the
+upcoming meeting to help finalize our decision, which will be formalized and
+published as our first language-change RFC. This RFC will propose an "MVP"
+specification for well-defined cross-language unwinding.
 
-## What is unwinding?
+<!-- XXX below, a "lang team meeting" was mentioned (I have now merged the
+relevant paragraph with the one above); are these the same? I.e., will the
+design meeting be a lang team meeting? -->
+
+## The question: should the `"C"` ABI permit unwinding?
+
+The core question that we would like to decide is whether the `"C"` ABI, as
+defined by Rust, should permit unwinding.
+
+This is not a question we expected to be debating. We've long declared that
+unwinding through Rust's `"C" ABI is undefined behavior. In part, this is
+because nobody had spent the time to figure out what the correct behavior would
+be, or how to implement it, although (as we'll see shortly) there are other
+good reasons for this choice. 
+
+In any case, in PR #65646, @Amanieu proposed that we could, in fact, simply
+define the behavior of unwinding across `"C"` boundaries. In discussing this,
+discovered that the question of whether the `"C" ABI should permit unwinding was
+less clear-cut than we had assumed.
+
+## Background: What is unwinding?
 
 Exceptions are a familiar control flow mechanism in many programming languages.
 They are particularly commonplace in managed languages such as Java, but they
@@ -28,6 +50,9 @@ support unwinding! There are two scenarios that will cause unwinding to occur:
 
 * Using FFI, Rust can call functions in other languages (such as C++) that can
   unwind the stack.
+  * There are some special cases where C libraries can actual cause unwinding.
+    For instance, on Microsoft platforms, `longjmp` is implemented with
+    unwinding.
 * By default, Rust's own `panic!()` unwinds the stack.
 
 ## Towards a stable unwinding MVP
