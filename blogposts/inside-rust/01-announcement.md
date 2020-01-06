@@ -7,13 +7,13 @@ working to extend the language to support unwinding that crosses FFI
 boundaries.
 
 We have reached our first technical decision point, on a question we have been
-discussing internally for quite a while.  This blog post lays out the arguments
+discussing internally for quite a while. This blog post lays out the arguments
 on each side of the issue and invites the Rust community to join us at the
 upcoming meeting to help finalize our decision, which will be formalized and
 published as our first language-change RFC. This RFC will propose an "MVP"
 specification for well-defined cross-language unwinding.
 
-<!-- XXX below, a "lang team meeting" was mentioned (I have now merged the
+<!-- TODO below, a "lang team meeting" was mentioned (I have now merged the
 relevant paragraph with the one above); are these the same? I.e., will the
 design meeting be a lang team meeting? -->
 
@@ -33,7 +33,16 @@ define the behavior of unwinding across `"C"` boundaries. In discussing this,
 discovered that the question of whether the `"C" ABI should permit unwinding was
 less clear-cut than we had assumed.
 
-## Background: What is unwinding?
+There are many different possible designs, but the most important question is
+to decide between two alternatives:
+
+* Permit any functions using the `"C"` ABI to unwind
+* Add a new ABI (`"C unwind"`) that permits unwinding; the `"C"` ABI is
+  specified as the system ABI but where unwinding is UB
+  <!-- TODO Isn't the "default" design to _abort_ when Rust code would
+  otherwise expose an unwind? -->
+
+## Background: what is unwinding?
 
 Exceptions are a familiar control flow mechanism in many programming languages.
 They are particularly commonplace in managed languages such as Java, but they
@@ -55,63 +64,38 @@ support unwinding! There are two scenarios that will cause unwinding to occur:
     unwinding.
 * By default, Rust's own `panic!()` unwinds the stack.
 
-## Towards a stable unwinding MVP
+Currently, when foreign (non-Rust) code invokes Rust code, the behavior of a
+`panic!()` unwind that "escapes" from Rust is explicitly undefined. Similarly,
+when Rust calls a foreign function that unwinds, the behavior once the unwind
+operation encounters Rust frames is undefined.
 
-The behavior of `panic!()` is generally well-defined: in most cases, it will
-terminate the thread or the entire program unless it is stopped by
-`catch_unwind()`.
+## Requirements for any cross-language unwinding specification
 
-When C++ code invokes Rust code, however, the behavior of a `panic!()` unwind
-that "escapes" from Rust into C++ is explicitly undefined. Similarly, when Rust
-calls a foreign function that unwinds, the behavior once the unwind operation
-encounters Rust frames is undefined.
+* Unwinding between Rust functions (and in particular unwinding of Rust panics)
+  may not necessarily use the system unwinding mechanism
+  * In practice, we do use the system mechanism today, but we would like to
+    reserve the freedom to change this
+* If you enable `-Cpanic=abort`, we are able to optimize the size of binaries
+  to remove most code related to unwinding.
+  * In extreme cases, it should be possible to remove **all** traces of
+    unwinding, when you know that it will not occur.
+  * In practice, most "C" functions are never expected to unwind (because they
+    are written in C, for example, and not in C++).
+    * However, because unwinding is now part of most system ABIs, even C
+      functions can unwind -- most notably, `pthread_cancel` can cause all
+      manner of C functions to unwind, including common functions like `read`
+      and `write`.  (For a complete list, search for "cancellation points" in
+      the [pthreads man
+      page](http://man7.org/linux/man-pages/man7/pthreads.7.html).)
+* Changing the behavior from `-Cpanic=unwind` to `-Cpanic=abort` should not
+  cause Undefined Behavior.
+  * However, this may not be tenable, or at least not without making binaries
+    much larger. See the discussion below for more details.
+  * It may, of course, cause programs to abort that used to execute
+    successfully. This could occur if a panic would've been caught and
+    recovered.
 
-Currently, Rust and C++ running in the same process space share the same
-runtime and the same unwinding mechanism. The ability to unwind across language
-boundaries has been used successfully in some crates despite the danger of
-exploiting undefined behavior.
-<!-- TODO mention `mozjpeg` or others? -->
-But this code is not merely theoretically incorrect; it has also been broken in
-practice by changes to Rust's code generation.
-<!-- TODO be more specific, or leave this vague? -->
-
-There are, however, some valid use cases that are impossible or impracticable
-without some form of cross-language unwinding.
-<!-- TODO examples? Lucet? -->
-
-The minimum feature set needed to safely enable these uses cases is a
-well-defined way to let Rust `panic`s "escape" `extern` Rust functions, and
-permit them to re-enter Rust code via non-Rust functions declared in Rust with
-`extern`. The project's first technical RFC will propose a specification for
-these abilities.
-
-## Defaults matter: Finalizing the behavior of `extern "C"`
-
-As usual when adding new features to Rust, we would like to avoid breaking
-changes if possible. We have discussed numerous possible non-breaking
-_additions_ to the language that would enable users to explicitly select the
-desired behavior for unwinding across FFI boundaries. But since the existing
-`extern "C"` function declaration syntax (and any other non-Rust ABI
-specification) is not explicit, we believe that selecting a default behavior
-for cross-FFI `panic`s would be preferable to leaving it undefined.
-
-The original plan, pre-existing the project group by several years, is to make
-Rust functions defined with `extern "C"` immediately `abort` if a `panic` would
-otherwise unwind out of the function. This was actually implemented and the
-behavior introduced to stable Rust twice, once in <!-- TODO version --> and
-again in <!-- TODO version -->. The change was reverted both times, however,
-because it breaks the only currently-working method for unwinding from Rust
-into other languages.
-
-<!-- TODO other options -->
-
-### The discussion so far
-
-Defining a specific unwinding implementation is overly limiting for Rust's
-development, so the project group is not authorized to simply declare ...
-<!-- TODO -->
-
-### Gathering metrics with a `rustc` fork
+## Gathering metrics with a `rustc` fork
 
 ## A soundness hole in stable Rust
 
