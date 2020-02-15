@@ -139,6 +139,14 @@ program would not abort.
 
 ## Comparison table for the proposed designs
 
+In this table, "UB" stands for "undefined behavior". Some instances of UB can
+be detected at runtime, but the code to do so would impose an undesirable
+code-size penalty; the group recommends generating such code only for debug
+builds. These cases are marked "UB (debug: abort)"
+
+Note that forced unwinding always causes undefined behavior when it traverses
+stack frames with destructors.
+
 |                               | “2 APIs” (Options 1 and 1c), “C”, “panic=unwind” | “2 APIs” (Options 1 and 1c), “C”, “panic=abort” | “2 APIs” (Options 1 and 1c), “C unwind”, “panic=unwind” | “2 APIs, always permit forced” (Option 1), “C unwind”, “panic=abort” | “2 APIs, minimal spec” (Option 1c), “C unwind”, “panic=abort” | “1 API” (Option 3), “panic=unwind” | “1 API” (Option 3), “panic=abort” |
 | ----------------------------- | ------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------- | --------------------------------- |
 | panic!                        | abort                                            | abort                                           | unwind                                                  | abort                                                                | abort                                                         | unwind                             | aborts                            |
