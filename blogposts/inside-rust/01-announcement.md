@@ -13,6 +13,8 @@ upcoming meeting to help finalize our decision, which will be formalized and
 published as our first language-change RFC. This RFC will propose an "MVP"
 specification for well-defined cross-language unwinding.
 
+TODO - meeting details
+
 ## Background: what is unwinding?
 
 Exceptions are a familiar control flow mechanism in many programming languages.
@@ -137,6 +139,12 @@ program would not abort.
 
 ## Comparison table for the proposed designs
 
-TODO
+|                               | “2 APIs” (Options 1 and 1c), “C”, “panic=unwind” | “2 APIs” (Options 1 and 1c), “C”, “panic=abort” | “2 APIs” (Options 1 and 1c), “C unwind”, “panic=unwind” | “2 APIs, always permit forced” (Option 1), “C unwind”, “panic=abort” | “2 APIs, minimal spec” (Option 1c), “C unwind”, “panic=abort” | “1 API” (Option 3), “panic=unwind” | “1 API” (Option 3), “panic=abort” |
+| ----------------------------- | ------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------- | --------------------------------- |
+| panic!                        | abort                                            | abort                                           | unwind                                                  | abort                                                                | abort                                                         | unwind                             | aborts                            |
+| Forced unwind, no dtors       | unwind                                           | unwind                                          | unwind                                                  | unwind                                                               | abort                                                         | unwind                             | unwind                            |
+| Forced unwind, dtors          | UB (debug: abort)                                | UB                                              | UB                                                      | UB                                                                   | abort                                                         | UB                                 | UB (debug: abort)                 |
+| Foreign exception, non-forced | UB (debug: abort)                                | UB                                              | unwind                                                  | abort                                                                | abort                                                         | unwind                             | UB (debug: abort)                 |
+
 
 [rfc-announcement]: https://github.com/rust-lang/rfcs/pull/2797
