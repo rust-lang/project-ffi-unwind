@@ -129,8 +129,9 @@ ABI boundary under either the `panic=unwind` or `panic=abort` compile-mode.
 ### 2 ABIs, forced unwinding always permitted
 
 This is the same as the previous design, except that when compiled with
-`panic=abort`, forced exceptions would *not* be intercepted; that is, the
-program would not abort.
+`panic=abort`, forced exceptions would *not* be intercepted at `"C unwind"` ABI
+boundaries; that is, the program would not abort. `panic!` and non-forced
+foreign exceptions would still cause the program to abort.
 
 ### 1 ABI
 
