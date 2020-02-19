@@ -96,14 +96,14 @@ The core question that we would like to decide is whether the `"C"` ABI, as
 defined by Rust, should permit unwinding.
 
 This is not a question we expected to be debating. We've long declared that
-unwinding through Rust's `"C" ABI is undefined behavior. In part, this is
+unwinding through Rust's `"C"` ABI is undefined behavior. In part, this is
 because nobody had spent the time to figure out what the correct behavior would
 be, or how to implement it, although (as we'll see shortly) there are other
 good reasons for this choice. 
 
 In any case, in PR #65646, @Amanieu proposed that we could, in fact, simply
 define the behavior of unwinding across `"C"` boundaries. In discussing this,
-discovered that the question of whether the `"C" ABI should permit unwinding was
+discovered that the question of whether the `"C"` ABI should permit unwinding was
 less clear-cut than we had assumed.
 
 If the `"C"` ABI does not permit unwinding, a new ABI, called `"C unwind"`,
