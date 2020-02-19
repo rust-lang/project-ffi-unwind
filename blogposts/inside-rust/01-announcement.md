@@ -115,7 +115,7 @@ The project group has narrowed the design space down to three specific
 proposals. Two of these introduce the new `"C unwind"` ABI, and one does not.
 
 Each proposal specifies the behavior of each type of unwind (Rust `panic!`,
-foreign (e.g. C++), and forced (e.g. `pthread` cancel)) when it encounters an
+foreign (e.g. C++), and forced (e.g. `pthread_exit`)) when it encounters an
 ABI boundary under either the `panic=unwind` or `panic=abort` compile-mode.
 
 ### 2 ABIs, minimal specification
