@@ -110,13 +110,13 @@ will be introduced specifically to support unwinding.
 ## Three specific proposals
 
 The project group has narrowed the design space down to three specific
-proposals. Two of these introduce the new `"C unwind"` API, and one does not.
+proposals. Two of these introduce the new `"C unwind"` ABI, and one does not.
 
 Each proposal specifies the behavior of each type of unwind (Rust `panic!`,
 foreign (e.g. C++), and forced (e.g. `pthread` cancel)) when it encounters an
 ABI boundary under either the `panic=unwind` or `panic=abort` compile-mode.
 
-### 2 APIs, minimal specification
+### 2 ABIs, minimal specification
 
 * `"C"` ABI boundary, `panic=<any>`
   * `panic!`: program aborts
@@ -126,13 +126,13 @@ ABI boundary under either the `panic=unwind` or `panic=abort` compile-mode.
   * With `panic=unwind`: all types of unwinding behave normally
   * With `panic=abort`: all types of unwinding abort the program
 
-### 2 APIs, forced unwinding always permitted
+### 2 ABIs, forced unwinding always permitted
 
 This is the same as the previous design, except that when compiled with
 `panic=abort`, forced exceptions would *not* be intercepted; that is, the
 program would not abort.
 
-### 1 API
+### 1 ABI
 
 * `panic=unwind`: unwind behaves normally
 * `panic=abort`:
@@ -150,12 +150,12 @@ builds. These cases are marked "UB (debug: abort)"
 Note that forced unwinding always causes undefined behavior when it traverses
 stack frames with destructors.
 
-|                               | “2 APIs” (Options 1 and 1c), “C”, “panic=unwind” | “2 APIs” (Options 1 and 1c), “C”, “panic=abort” | “2 APIs” (Options 1 and 1c), “C unwind”, “panic=unwind” | “2 APIs, always permit forced” (Option 1), “C unwind”, “panic=abort” | “2 APIs, minimal spec” (Option 1c), “C unwind”, “panic=abort” | “1 API” (Option 3), “panic=unwind” | “1 API” (Option 3), “panic=abort” |
-| ----------------------------- | ------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------- | --------------------------------- |
-| panic!                        | abort                                            | abort                                           | unwind                                                  | abort                                                                | abort                                                         | unwind                             | aborts                            |
-| Forced unwind, no dtors       | unwind                                           | unwind                                          | unwind                                                  | unwind                                                               | abort                                                         | unwind                             | unwind                            |
-| Forced unwind, dtors          | UB (debug: abort)                                | UB                                              | UB                                                      | UB                                                                   | abort                                                         | UB                                 | UB (debug: abort)                 |
-| Foreign exception, non-forced | UB (debug: abort)                                | UB                                              | unwind                                                  | abort                                                                | abort                                                         | unwind                             | UB (debug: abort)                 |
+|                               | “2 ABIs”, “C”, “panic=unwind” | “2 ABIs”, “C”, “panic=abort” | “2 ABIs”, “C unwind”, “panic=unwind” | “2 ABIs, always permit forced”, “C unwind”, “panic=abort” | “2 ABIs, minimal spec”, “C unwind”, “panic=abort” | “1 ABI”, “panic=unwind” | “1 ABI”,  “panic=abort” |
+| ----------------------------- | ----------------------------- | ---------------------------- | ------------------------------------ | --------------------------------------------------------- | ------------------------------------------------- | ----------------------- | ----------------------- |
+| panic!                        | abort                         | abort                        | unwind                               | abort                                                     | abort                                             | unwind                  | aborts                  |
+| Forced unwind, no dtors       | unwind                        | unwind                       | unwind                               | unwind                                                    | abort                                             | unwind                  | unwind                  |
+| Forced unwind, dtors          | UB (debug: abort)             | UB                           | UB                                   | UB                                                        | abort                                             | UB                      | UB (debug: abort)       |
+| Foreign exception, non-forced | UB (debug: abort)             | UB                           | unwind                               | abort                                                     | abort                                             | unwind                  | UB (debug: abort)       |
 
 
 [rfc-announcement]: https://github.com/rust-lang/rfcs/pull/2797
