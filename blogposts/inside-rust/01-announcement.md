@@ -54,8 +54,10 @@ no plans to change this.
 ### Forced unwinding
 
 Platform ABIs can define a special kind of unwinding called "forced unwinding."
-This type of unwinding is never supposed to be intercepted by the language
-runtime; so, for instance, C++ destructors should not be invoked.
+This type of unwinding operation cannot be stopped prematurely using language
+mechanisms such as Rust's `catch_unwind` or C++'s `catch`. (These mechanisms
+can intercept forced unwinds, but the runtime will resume unwinding regardless
+of the content of the intercepting code, unless the program is aborted).
 
 There are two common types of forced unwinding:
 
