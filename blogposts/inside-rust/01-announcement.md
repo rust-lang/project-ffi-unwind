@@ -159,13 +159,13 @@ stack frames with destructors.
 
  |                                                        | `panic`-unwind                        | Forced unwind, no destructors | Foreign unwind, non-forced, no destructors | Foreign unwind (forced or unforced) with destructors |
  | ------------------------------------------------------ | ------------------------------------- | ----------------------------- | ------------------------------------------ | ---------------------------------------------------- |
- | Proposals 1 & 2, `"C"` boundary, `panic=unwind`        | abort                                 | unwind                        | abort                                      | UB                                                   |
+ | Proposals 1 & 2, `"C"` boundary, `panic=unwind`        | abort                                 | unwind                        | unwind                                     | UB                                                   |
  | Proposals 1 & 2, `"C"` boundary, `panic=abort`         | `panic!` aborts (no unwinding occurs) | unwind                        | unwind                                     | UB                                                   |
  | Proposals 1 & 2, `"C unwind"` boundary, `panic=unwind` | unwind                                | unwind                        | unwind                                     | unwind                                               |
  | Proposal 1, `"C unwind"` boundary, `panic=abort`       | `panic!` aborts                       | abort                         | abort                                      | abort                                                |
  | Proposal 2, `"C unwind"` boundary, `panic=abort`       | `panic!` aborts                       | unwind                        | abort                                      | UB if forced; abort otherwise                        |
  | Proposal 3,  `"C"` boundary, `panic=unwind`            | unwind                                | unwind                        | unwind                                     | unwind                                               |
- | Proposal 3, `"C"` boundary, `panic=abort`              | `panic!` aborts                       | unwind                        | UB (debug: abort)                          | UB (debug: abort)                                    |
+ | Proposal 3, `"C"` boundary, `panic=abort`              | `panic!` aborts                       | unwind                        | unwind                                     | UB (debug: abort)                                    |
 
 [rfc-announcement]: https://github.com/rust-lang/rfcs/pull/2797
 [meeting-link]: https://arewemeetingyet.com/UTC/2020-02-24/17:00/Lang%20Team%20Design%20Meeting:%20FFI-unwind#eyJ1cmwiOiJodHRwczovL21vemlsbGEuem9vbS51cy9qLzc2ODIzMTc2MCJ9
