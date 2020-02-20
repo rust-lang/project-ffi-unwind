@@ -8,15 +8,12 @@ boundaries.
 
 We have reached our first technical decision point, on a question we have been
 discussing internally for quite a while. This blog post lays out the arguments
-on each side of the issue and invites the Rust community to join us at the
-[upcoming meeting](meeting-link) to help finalize our decision, which will be
-formalized and published as our first language-change RFC. This RFC will
-propose an "MVP" specification for well-defined cross-language unwinding.
+on each side of the issue and invites the Rust community to join us at an
+upcoming meeting to help finalize our decision, which will be formalized and
+published as our first language-change RFC. This RFC will propose an "MVP"
+specification for well-defined cross-language unwinding.
 
-The meeting will be on Monday the 24th at 17:00 UTC, via Zoom:
-
-> Meeting ID: 768 231 760
-> https://mozilla.zoom.us/j/768231760
+The meeting will be on [Monday the 24th at 17:00 UTC, via Zoom](meeting-link).
 
 ## Background: what is unwinding?
 
