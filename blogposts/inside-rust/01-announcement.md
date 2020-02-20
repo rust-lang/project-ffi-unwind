@@ -59,7 +59,7 @@ of the content of the intercepting code, unless the program is aborted).
 There are two common types of forced unwinding:
 
 * On Windows platforms, `longjmp` is implemented as a forced unwind.
-* On UNIX-like platforms, `pthread_exit` results in a forced unwind.
+* On UNIX-like platforms, `pthread_exit` and `pthread_cancel` result in a forced unwind.
 
 ## Requirements for any cross-language unwinding specification
 
