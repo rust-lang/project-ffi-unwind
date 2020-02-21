@@ -154,7 +154,7 @@ non-forced foreign exceptions would still cause the program to abort.
   * foreign unwinding with destructors: undefined behavior
 
 The main advantage of this proposal is its simplicity: there is only one ABI and
-the behavior of `panic=unwind` is identical to that of `-fno-exceptions` in C++.
+the behavior of `panic=abort` is identical to that of `-fno-exceptions` in C++.
 However this comes with the downside that switching to `panic=abort` may in some
 cases introduce UB (though only in unsafe code) if FFI calls unwind through Rust
 code.
