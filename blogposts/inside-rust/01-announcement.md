@@ -166,7 +166,7 @@ be detected at runtime, but the code to do so would impose an undesirable
 code-size penalty; the group recommends generating such code only for debug
 builds. These cases are marked "UB (debug: abort)"
 
-Note that unwinding through a frame without running its destructors (e.g. because they have been optimized out by `panic=abort`) is always undefined behavior, except if the frame has no destructors.
+Note that unwinding through a frame that has destructors without running those destructors (e.g. because they have been optimized out by `panic=abort`) is always undefined behavior.
 
  |                                                        | `panic`-unwind                        | Forced unwind, no destructors | Foreign unwind, non-forced, no destructors | Foreign unwind (forced or unforced) with destructors |
  | ------------------------------------------------------ | ------------------------------------- | ----------------------------- | ------------------------------------------ | ---------------------------------------------------- |
