@@ -1,6 +1,6 @@
 # Announcing the first FFI-unwind project design meeting
 
--- Kyle Strand and Niko Matsakis on behalf of the FFI-unwind project group --
+-- Kyle Strand, Niko Matsakis and Amanieu d'Antras on behalf of the FFI-unwind project group --
 
 The FFI-unwind project group, announced in [this RFC][rfc-announcement], is
 working to extend the language to support unwinding that crosses FFI
@@ -56,29 +56,29 @@ mechanisms such as Rust's `catch_unwind` or C++'s `catch`. (These mechanisms
 can sometimes intercept forced unwinds, but they must resume the unwind
  otherwise the runtime will abort the program).
 
-There are two common types of forced unwinding:
+There are two common examples of forced unwinding:
 
 * On Windows platforms, `longjmp` is implemented as a forced unwind.
-* On UNIX-like platforms, `pthread_exit` and `pthread_cancel` result in a forced unwind.
+* On glibc Linux, `pthread_exit` and `pthread_cancel` are implemented as a forced unwind.
+  * In fact, `pthread_cancel` can cause all manner of C functions to unwind,
+    including common functions like `read` and `write`.  (For a complete list,
+    search for "cancellation points" in the [pthreads man page](http://man7.org/linux/man-pages/man7/pthreads.7.html).)
 
 ## Requirements for any cross-language unwinding specification
 
 * Unwinding between Rust functions (and in particular unwinding of Rust panics)
   may not necessarily use the system unwinding mechanism
   * In practice, we do use the system mechanism today, but we would like to
-    reserve the freedom to change this
+    reserve the freedom to change this.
 * If you enable `-Cpanic=abort`, we are able to optimize the size of binaries
   to remove most code related to unwinding.
-  * In extreme cases, it should be possible to remove **all** traces of
-    unwinding, when you know that it will not occur.
+  * Even with `-Cpanic=unwind` it should be possible to optimize away code when
+    unwinding is known to never occur.
   * In practice, most "C" functions are never expected to unwind (because they
     are written in C, for example, and not in C++).
     * However, because unwinding is now part of most system ABIs, even C
-      functions can unwind -- most notably, `pthread_cancel` can cause all
-      manner of C functions to unwind, including common functions like `read`
-      and `write`.  (For a complete list, search for "cancellation points" in
-      the [pthreads man
-      page](http://man7.org/linux/man-pages/man7/pthreads.7.html).)
+      functions can unwind -- most notably cancellation points triggered by
+      `pthread_cancel`.
 * Changing the behavior from `-Cpanic=unwind` to `-Cpanic=abort` should not
   cause Undefined Behavior.
   * However, this may not be tenable, or at least not without making binaries
@@ -88,6 +88,8 @@ There are two common types of forced unwinding:
     recovered.
 * Changing the ABI (the `"C"` in `extern "C"`) of functions in the libc crate is
   a breaking change: function pointers of different ABIs have different types.
+  * This is relevant for the libc functions which may perform forced unwinding
+    when `pthread_cancel` is called.
 
 ## The primary question: should the `"C"` ABI permit unwinding?
 
