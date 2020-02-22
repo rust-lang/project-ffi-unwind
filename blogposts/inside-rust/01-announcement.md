@@ -1,6 +1,6 @@
 # Announcing the first FFI-unwind project design meeting
 
--- Kyle Strand, Niko Matsakis and Amanieu d'Antras on behalf of the FFI-unwind project group --
+-- Kyle Strand, Niko Matsakis, and Amanieu d'Antras on behalf of the FFI-unwind project group --
 
 The FFI-unwind project group, announced in [this RFC][rfc-announcement], is
 working to extend the language to support unwinding that crosses FFI
@@ -13,7 +13,7 @@ upcoming meeting to help finalize our decision, which will be formalized and
 published as our first language-change RFC. This RFC will propose an "MVP"
 specification for well-defined cross-language unwinding.
 
-The meeting will be on [Monday the 24th at 17:00 UTC, via Zoom](meeting-link).
+The meeting will be on [TODO - TBD](meeting-link).
 
 ## Background: what is unwinding?
 
@@ -62,7 +62,7 @@ There are two common examples of forced unwinding:
 * On glibc Linux, `pthread_exit` and `pthread_cancel` are implemented as a forced unwind.
   * In fact, `pthread_cancel` can cause all manner of C functions to unwind,
     including common functions like `read` and `write`.  (For a complete list,
-    search for "cancellation points" in the [pthreads man page](http://man7.org/linux/man-pages/man7/pthreads.7.html).)
+    search for "cancellation points" in the [pthreads man page](man-pthreads).)
 
 ## Requirements for any cross-language unwinding specification
 
@@ -77,8 +77,8 @@ There are two common examples of forced unwinding:
   * In practice, most "C" functions are never expected to unwind (because they
     are written in C, for example, and not in C++).
     * However, because unwinding is now part of most system ABIs, even C
-      functions can unwind -- most notably cancellation points triggered by
-      `pthread_cancel`.
+      functions can unwind &mdash; most notably cancellation points triggered
+      by `pthread_cancel`.
 * Changing the behavior from `-Cpanic=unwind` to `-Cpanic=abort` should not
   cause Undefined Behavior.
   * However, this may not be tenable, or at least not without making binaries
@@ -169,7 +169,9 @@ be detected at runtime, but the code to do so would impose an undesirable
 code-size penalty; the group recommends generating such code only for debug
 builds. These cases are marked "UB (debug: abort)"
 
-Note that unwinding through a frame that has destructors without running those destructors (e.g. because they have been optimized out by `panic=abort`) is always undefined behavior.
+Note that unwinding through a frame that has destructors without running those
+destructors (e.g. because they have been optimized out by `panic=abort`) is
+always undefined behavior.
 
  |                                                        | `panic`-unwind                        | Forced unwind, no destructors | Foreign unwind, non-forced, no destructors | Foreign unwind (forced or unforced) with destructors |
  | ------------------------------------------------------ | ------------------------------------- | ----------------------------- | ------------------------------------------ | ---------------------------------------------------- |
@@ -182,4 +184,5 @@ Note that unwinding through a frame that has destructors without running those d
  | Proposal 3, `"C"` boundary, `panic=abort`              | `panic!` aborts                       | unwind                        | unwind                                     | UB (debug: abort)                                    |
 
 [rfc-announcement]: https://github.com/rust-lang/rfcs/pull/2797
-[meeting-link]: https://arewemeetingyet.com/UTC/2020-02-24/17:00/Lang%20Team%20Design%20Meeting:%20FFI-unwind#eyJ1cmwiOiJodHRwczovL21vemlsbGEuem9vbS51cy9qLzc2ODIzMTc2MCJ9
+[meeting-link]: https://arewemeetingyet.com/UTC/XXX-TODO
+[man-pthreads]: http://man7.org/linux/man-pages/man7/pthreads.7.html
