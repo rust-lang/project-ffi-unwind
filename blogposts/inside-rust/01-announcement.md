@@ -86,8 +86,9 @@ There are two common examples of forced unwinding:
   * It may, of course, cause programs to abort that used to execute
     successfully. This could occur if a panic would've been caught and
     recovered.
-* Changing the ABI (the `"C"` in `extern "C"`) of functions in the libc crate is
-  a breaking change: function pointers of different ABIs have different types.
+* We cannot change the ABI (the `"C"` in `extern "C"`) of functions in the libc
+  crate, because this would be a breaking change: function pointers of different
+  ABIs have different types.
   * This is relevant for the libc functions which may perform forced unwinding
     when `pthread_cancel` is called.
 
