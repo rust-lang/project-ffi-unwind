@@ -148,6 +148,14 @@ boundaries; that is, they would behave normally (though still UB if there are
 any destructors), without causing the program to abort. `panic`-unwind and
 non-forced foreign exceptions would still cause the program to abort.
 
+The advantage of treating forced unwinding differently is that it reduces
+portability incompatibilities. Specifically, it ensures that using `"C unwind"`
+cannot cause `longjmp` or `pthread_exit` to stop working (abort the program)
+when the target platform and/or compile flags are changed.  With proposal 1,
+`longjmp` will be able to cross `"C unwind"` boundaries _except_ on Windows
+with MSVC under `panic=abort`, and `pthread_exit` will work inside `"C unwind"`
+functions _except_ when linked with glibc under `panic=abort`.
+
 ### Proposal 3: No new ABI
 
 * `panic=unwind`: unwind behaves normally
