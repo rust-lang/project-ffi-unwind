@@ -6,22 +6,39 @@
 # Summary
 [summary]: #summary
 
-
 # Motivation
 [motivation]: #motivation
 
+# Guide-level explanation
+[guide-level-explanation]: #guide-level-explanation
 
-# Prototyping 'shepherded' project groups
-[prototyping-project-groups]: #prototyping-shepherded-project-groups
+# Reference-level explanation
+[reference-level-explanation]: #reference-level-explanation
 
 # Drawbacks
 [drawbacks]: #drawbacks
 
+Still some UB
+
+(more: see notes from design meeting)
+
+# Rationale and alternatives
+[rationale-and-alternatives]: #rationale-and-alternatives
+
+Let foreign exceptions cross `extern "C"` boundary ("option 3" in blog post)
+
+Variant on this approach - "option 1" in blog post: different "forced-unwind"
+behavior
+
 # Prior art
 [prior-art]: #prior-art
 
-# Unresolved questions and Future possibilities
+C++
+
+# Unresolved questions
 [unresolved-questions]: #unresolved-questions
+
+
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
