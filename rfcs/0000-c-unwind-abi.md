@@ -13,6 +13,9 @@ Additionally, defines the behavior for a limited number of previously-undefined
 cases when an unwind operation reaches a Rust function boundary with a
 non-`"Rust"`, non-`"C"` ABI.
 
+This RFC does not define the behavior of `catch_unwind` in a Rust frame being
+unwound by a foreign exception.
+
 # Motivation
 [motivation]: #motivation
 
@@ -64,6 +67,12 @@ may be "sandwiched" between Rust frames, so that Rust `panic`s may safely
 unwind the C++ frames, if the Rust code declares both the C++ entrypoint and
 the Rust entrypoint using `"C unwind"`.
 
+## Forced unwinding
+
+This is a special kind of unwinding used to implement `longjmp` on Windows and
+`pthread_exit` in `glibc`.
+<!-- TODO: link to blog post, or is this sufficient? --> 
+
 ## Changes to `extern "C"` behavior
 
 Prior to this RFC, any unwinding operation that crossed an `extern "C"`
@@ -71,26 +80,36 @@ boundary, either from a `panic!` "escaping" from a Rust function defined with
 `extern "C"` or by entering Rust from another language via an entrypoint
 declared with `extern "C"`, caused undefined behavior.
 
-This RFC retains most of that undefined behavior, with a few exceptions:
+This RFC retains most of that undefined behavior, with two exceptions:
 
-<!-- TODO -->
+* With the `panic=abort` runtime, `panic!` will cause an `abort` if it would
+  otherwise "escape" from a function defined with `extern "C"`.
+* Forced unwinding is safe with `extern "C"` as long as no frames with
+  destructors (i.e. `Drop` types) are unwound.
 
 ## Interaction with `panic=abort`
 
 When compiling with the `panic=abort` panic runtime, there are some types of
 unwinding that are not guaranteed cause the program to abort:
 
-* Forced unwinding: this is a special kind of unwinding used to implement
-  `longjmp` on Windows and `pthread_exit` in `glibc`;
-  <!-- TODO: link to blog post, or is this sufficient? -->
-  Rust provides no mechanism to catch this type of unwinding.
+* Forced unwinding: Rust provides no mechanism to catch this type of unwinding.
 * Unwinding from another language into Rust if the entrypoint to that language
   is declared with `extern "C"` (contrary to the guidelines above)
 
-In the case of forced unwinding, this is safe as long as none of the unwound Rust frames contain destructors. In the case of an `extern "C"` function
+In the case of forced unwinding, this is safe if the new `"C unwind"` ABI is
+used and none of the unwound Rust frames contain destructors. In the case of an
+unwind coming from an `extern "C"` function, this behavior is always undefined.
+
+If a non-forced foreign unwind would enter a Rust frame via an `extern "C
+unwind"` ABI boundary, but the Rust code is compiled with `panic=abort`, the
+unwind will be caught and the process aborted.
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
+
+This table shows the behavior of an unwinding operation reaching each type of
+ABI boundary (function declaration or definition). "UB" stands for undefined
+behavior.
 
 | panic runtime  | ABI          | `panic`-unwind                        | Forced unwind, no destructors | Forced unwind with destructors | Other foreign unwind |
 | -------------- | ------------ | ------------------------------------- | ----------------------------- | ------------------------------ | -------------------- |
@@ -99,33 +118,62 @@ In the case of forced unwinding, this is safe as long as none of the unwound Rus
 | `panic=abort`  | `"C unwind"` | `panic!` aborts                       | unwind                        | UB                             | abort                |
 | `panic=abort`  | `"C"`-like   | `panic!` aborts (no unwinding occurs) | unwind                        | UB                             | UB                   |
 
-<!-- TODO: note about `catch_unwind` -->
+No subtype relationship is defined between functions or function pointers using
+different ABIs. This RFC also does not define coercions between `"C"` and
+`"C unwind"`.
+
+As noted above, if a Rust frame is unwound by a foreign exception, the behavior
+is undefined for now.
 
 # Drawbacks
 [drawbacks]: #drawbacks
 
-Still some UB
+There is still an instance of undefined behavior with this proposal: when a
+forced unwind crosses a Rust frame with destructors, the behavior under
+`panic=abort` is undefined. This means that there are some cases in which a
+program that is well-defined under `panic=unwind` will not be well-defined
+under `panic=abort`.
 
-(more: see notes from design meeting)
+This design imposes some burden on existing codebases (mentioned
+[above][motivation]) to change their `extern` annotations to use the new ABI.
+
+Having separate ABIs for `"C"` and `"C unwind"` may make interface design more
+difficult, especially since this RFC [postpones][future-possibilities]
+introducing coercions between function types using different ABIs.
+
+<!-- TODO more: see notes from design meeting -->
 
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
+Two other potential designs have been discussed in depth; they are
+explained in [this blog post][internals-announce]. The design in this RFC is
+referred to as "option 2" in that post.
+
+"Option 1" in that blog post only differs from the current proposal in the
+behavior of a `"C unwind"` boundary under `panic=abort`. <!-- TODO -->
+
 Let foreign exceptions cross `extern "C"` boundary ("option 3" in blog post)
 
-Variant on this approach - "option 1" in blog post: different "forced-unwind"
-behavior
+[internals-announce]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html
 
 # Prior art
 [prior-art]: #prior-art
 
 C++
 
+`-fno-exceptions`, `-fexceptions`
+
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
 
+ `catch_unwind` (link to PR discussion)
 
+coercions
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
 
+more interactions w/ foreign exceptions
+
+shims will be required if Rust changes its unwind mechanism
