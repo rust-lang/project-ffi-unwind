@@ -146,26 +146,78 @@ introducing coercions between function types using different ABIs.
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
+<!-- TODO: 'requirements' from inside-rust post -->
+
+## Other proposals discussed with the lang team
+[alternatives]: #other-proposals-discussed-with-the-lang-team
+
 Two other potential designs have been discussed in depth; they are
-explained in [this blog post][internals-announce]. The design in this RFC is
+explained in [this blog post][inside-rust-post]. The design in this RFC is
 referred to as "option 2" in that post.
 
 "Option 1" in that blog post only differs from the current proposal in the
-behavior of a `"C unwind"` boundary under `panic=abort`. <!-- TODO -->
+behavior of a forced unwind across a `"C unwind"` boundary under `panic=abort`.
+Under the current proposal, this type of unwind is permitted, allowing
+`longjmp` and `pthread_exit` to behave "normally" across all platforms
+regardless of panic runtime. If there are destructors in the unwound frames,
+this results in undefined behavior. Under "option 1", however, all foreign
+unwinding, forced or unforced, is caught at `"C unwind"` boundaries under
+`panic=abort`, and the process is aborted. This gives `longjmp` and
+`pthread_exit` surprising behavior on some platforms, but avoids that cause of
+undefined behavior in the current proposal.
 
-Let foreign exceptions cross `extern "C"` boundary ("option 3" in blog post)
+The other proposal in the blog post, "option 3", is dramatically different. In
+that proposal, foreign exceptions are permitted to cross `extern "C"`
+boundaries, and no new ABI is introduced.
 
-[internals-announce]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html
+## Reasons for the current proposal
+[rationale]: #reasons-for-the-current-proposal
+
+Our reasons for preferring the current proposal are:
+
+* Introducing a new ABI makes reliance on cross-language exception handling
+  more explicit.
+* `panic=abort` can be safely used with `extern "C unwind"` (there is no
+  undefined behavior except with improperly used forced unwinding), but `extern
+  "C"` has more optimization potential (eliding landing pads). Having two ABIs
+  puts this choice in the hands of users.
+  * Additionally, there are very few cases in which the current proposal
+    permits the `panic=abort` runtime to introduce undefined behavior to a
+    program that is well-defined under `panic=unwind`. The "option 3" proposal
+    causes any foreign exception entering Rust to have undefined behavior under
+    `panic=abort`.
+* This design has simpler forward compatibility with alternate `panic!`
+  implementations. Any well-defined cross-language unwinding will require shims
+  to translate between the Rust unwinding mechanism and the natively provided
+  mechanism. In this proposal, only `"C unwind"` boundaries would require shims.
+
+[inside-rust-post]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html
 
 # Prior art
 [prior-art]: #prior-art
 
-C++
+C++ as specified has no concept of "foreign" exceptions or of an underlying
+exception mechanism. However, in practice, the C++ exception mechanism is the
+"native" unwinding mechanism used by compilers.
 
-`-fno-exceptions`, `-fexceptions`
+On Microsoft platforms, when using MSVC, unwinding is always supported for both
+C++ and C code; this is very similar to "option 3" described in [the
+inside-rust post][inside-rust-post] mentioned [above][alternatives].
+
+On other platforms, GCC, LLVM, and any related compilers provide a flag,
+`-fexceptions`, for explicitly ensuring that stack frames have unwinding
+support regardless of the language being compiled. Conversely,
+`-fno-exceptions` removes unwinding support even from C++. This is somewhat
+similar to how Rust's `panic=unwind` and `panic=abort` work for `panic!`
+unwinds, and under the "option 3" proposal, the behavior would be similar for
+foreign exceptions as well. In the current proposal, though, such foreign
+exception support is not enabled by default with `panic=unwind` but requires
+the new `"C unwind"` ABI.
 
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
+
+<!-- TODO -->
 
  `catch_unwind` (link to PR discussion)
 
@@ -173,6 +225,8 @@ coercions
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
+
+<!-- TODO -->
 
 more interactions w/ foreign exceptions
 
