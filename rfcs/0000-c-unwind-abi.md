@@ -15,6 +15,13 @@
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
 
+| ABI          | panic runtime  | `panic`-unwind                        | Forced unwind, no destructors | Forced unwind with destructors | Other foreign unwind |
+| ------------ | -------------- | ------------------------------------- | ----------------------------- | ------------------------------ | -------------------- |
+| `"C"`        | `panic=unwind` | abort                                 | unwind                        | UB                             | UB                   |
+| `"C unwind"` | `panic=unwind` | unwind                                | unwind                        | unwind                         | unwind               |
+| `"C"`        | `panic=abort`  | `panic!` aborts (no unwinding occurs) | unwind                        | UB                             | UB                   |
+| `"C unwind"` | `panic=abort`  | `panic!` aborts                       | unwind                        | UB                             | abort                |
+
 # Drawbacks
 [drawbacks]: #drawbacks
 
