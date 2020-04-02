@@ -6,6 +6,13 @@
 # Summary
 [summary]: #summary
 
+Introduces a new ABI string, `"C unwind"`, to enable unwinding from other
+languages (such as C++) into Rust frames and from Rust into other languages.
+
+Additionally, defines the behavior for a limited number of previously-undefined
+cases when an unwind operation reaches a Rust function boundary with a
+non-`"Rust"`, non-`"C"` ABI.
+
 # Motivation
 [motivation]: #motivation
 
@@ -15,12 +22,12 @@
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
 
-| ABI          | panic runtime  | `panic`-unwind                        | Forced unwind, no destructors | Forced unwind with destructors | Other foreign unwind |
-| ------------ | -------------- | ------------------------------------- | ----------------------------- | ------------------------------ | -------------------- |
-| `"C"`        | `panic=unwind` | abort                                 | unwind                        | UB                             | UB                   |
-| `"C unwind"` | `panic=unwind` | unwind                                | unwind                        | unwind                         | unwind               |
-| `"C"`        | `panic=abort`  | `panic!` aborts (no unwinding occurs) | unwind                        | UB                             | UB                   |
-| `"C unwind"` | `panic=abort`  | `panic!` aborts                       | unwind                        | UB                             | abort                |
+| panic runtime  | ABI          | `panic`-unwind                        | Forced unwind, no destructors | Forced unwind with destructors | Other foreign unwind |
+| -------------- | ------------ | ------------------------------------- | ----------------------------- | ------------------------------ | -------------------- |
+| `panic=unwind` | `"C unwind"` | unwind                                | unwind                        | unwind                         | unwind               |
+| `panic=unwind` | `"C"`-like   | abort                                 | unwind                        | UB                             | UB                   |
+| `panic=abort`  | `"C unwind"` | `panic!` aborts                       | unwind                        | UB                             | abort                |
+| `panic=abort`  | `"C"`-like   | `panic!` aborts (no unwinding occurs) | unwind                        | UB                             | UB                   |
 
 # Drawbacks
 [drawbacks]: #drawbacks
