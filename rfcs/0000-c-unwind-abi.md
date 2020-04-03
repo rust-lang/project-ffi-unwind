@@ -145,7 +145,8 @@ Having separate ABIs for `"C"` and `"C unwind"` may make interface design more
 difficult, especially since this RFC [postpones][future-possibilities]
 introducing coercions between function types using different ABIs.
 
-<!-- TODO more: see notes from design meeting -->
+A single ABI that "just works" with C++ (or any other language that may throw
+exceptions) would be simpler to learn and use than two separate ABIs.
 
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
@@ -206,6 +207,11 @@ Our reasons for preferring the current proposal are:
     program that is well-defined under `panic=unwind`. The "option 3" proposal
     causes any foreign exception entering Rust to have undefined behavior under
     `panic=abort`.
+  * This optimization could be made available with a single ABI by means of an
+    annotation indicating that a function cannot unwind (similar to C++'s
+    `noexcept`). However, Rust does not yet support annotations for function
+    pointers, so until that feature is added, such an annotation could not be
+    applied to function pointers.
 * This design has simpler forward compatibility with alternate `panic!`
   implementations. Any well-defined cross-language unwinding will require shims
   to translate between the Rust unwinding mechanism and the natively provided
