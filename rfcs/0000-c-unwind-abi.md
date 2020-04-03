@@ -37,8 +37,7 @@ including #2699 and #2753.
 [guide-level-explanation]: #guide-level-explanation
 
 When declaring an external function that may unwind, such as an entrypoint to a
-C++ library or a `libc` function that may invoke `pthread_exit`, use
-`"C unwind"`:
+C++ library, use `"C unwind"`:
 
 ```
 extern "C unwind" {
@@ -69,11 +68,19 @@ unwind the C++ frames, if the Rust code declares both the C++ entrypoint and
 the Rust entrypoint using `"C unwind"`.
 
 ## Forced unwinding
+[forced-unwinding]: #forced-unwinding
 
 This is a special kind of unwinding used to implement `longjmp` on Windows and
 `pthread_exit` in `glibc`. A brief explanation is provided in [this Inside Rust
 blog post][inside-rust-forced]. This RFC distinguishes forced unwinding from
 other types of foreign unwinding.
+
+Since language features implemented using forced unwinding on some platforms
+use other mechanisms on other platforms, Rust code should not rely on forced
+unwinding to invoke destructors (calling `drop` on `Drop` types). External
+functions that do not initiate unforced unwinding (such as C++ style
+exceptions), but may cause a forced unwind on certain platforms, should
+therefore be declared with the `"C"` ABI rather than the `"C unwind"` ABI.
 
 [inside-rust-forced]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#forced-unwinding
 
@@ -100,9 +107,9 @@ unwinding that are not guaranteed cause the program to abort:
 * Unwinding from another language into Rust if the entrypoint to that language
   is declared with `extern "C"` (contrary to the guidelines above)
 
-In the case of forced unwinding, this is safe if the new `"C unwind"` ABI is
-used and none of the unwound Rust frames contain destructors. In the case of an
-unwind coming from an `extern "C"` function, this behavior is always undefined.
+In the case of forced unwinding, this is safe with either the `"C"` ABI or the
+new `"C unwind"` ABI, as long as none of the unwound Rust frames contain
+destructors.
 
 If a non-forced foreign unwind would enter a Rust frame via an `extern "C
 unwind"` ABI boundary, but the Rust code is compiled with `panic=abort`, the
@@ -136,7 +143,10 @@ There is still an instance of undefined behavior with this proposal: when a
 forced unwind crosses a Rust frame with destructors, the behavior under
 `panic=abort` is undefined. This means that there are some cases in which a
 program that is well-defined under `panic=unwind` will not be well-defined
-under `panic=abort`.
+under `panic=abort`. As noted [above][forced-unwinding], however, language
+features using forced unwinding on one platform generally do not involve any
+form of unwinding on other platforms, so such a program would have undefined
+behavior even with `panic=unwind` on most platforms.
 
 This design imposes some burden on existing codebases (mentioned
 [above][motivation]) to change their `extern` annotations to use the new ABI.
@@ -177,13 +187,13 @@ RFC is referred to as "option 2" in that post.
 "Option 1" in that blog post only differs from the current proposal in the
 behavior of a forced unwind across a `"C unwind"` boundary under `panic=abort`.
 Under the current proposal, this type of unwind is permitted, allowing
-`longjmp` and `pthread_exit` to behave "normally" across all platforms
-regardless of panic runtime. If there are destructors in the unwound frames,
-this results in undefined behavior. Under "option 1", however, all foreign
-unwinding, forced or unforced, is caught at `"C unwind"` boundaries under
-`panic=abort`, and the process is aborted. This gives `longjmp` and
-`pthread_exit` surprising behavior on some platforms, but avoids that cause of
-undefined behavior in the current proposal.
+`longjmp` and `pthread_exit` to behave "normally" with both the `"C"` and the
+`"C unwind"` ABI across all platforms regardless of panic runtime. If there are
+destructors in the unwound frames, this results in undefined behavior. Under
+"option 1", however, all foreign unwinding, forced or unforced, is caught at
+`"C unwind"` boundaries under `panic=abort`, and the process is aborted. This
+gives `longjmp` and `pthread_exit` surprising behavior on some platforms, but
+avoids that cause of undefined behavior in the current proposal.
 
 The other proposal in the blog post, "option 3", is dramatically different. In
 that proposal, foreign exceptions are permitted to cross `extern "C"`
