@@ -100,27 +100,27 @@ This RFC retains most of that undefined behavior, with two exceptions:
 
 ## Interaction with `panic=abort`
 
-When compiling with the `panic=abort` panic runtime, there are some types of
-unwinding that are not guaranteed cause the program to abort:
-
-* Forced unwinding: Rust provides no mechanism to catch this type of unwinding.
-* Unwinding from another language into Rust if the entrypoint to that language
-  is declared with `extern "C"` (contrary to the guidelines above)
-
-In the case of forced unwinding, this is safe with either the `"C"` ABI or the
-new `"C unwind"` ABI, as long as none of the unwound Rust frames contain
-destructors.
-
 If a non-forced foreign unwind would enter a Rust frame via an `extern "C
 unwind"` ABI boundary, but the Rust code is compiled with `panic=abort`, the
 unwind will be caught and the process aborted.
+
+There are some types of unwinding that are not guaranteed cause the program to
+abort with `panic=abort`, though:
+
+* Forced unwinding: Rust provides no mechanism to catch this type of unwinding.
+  This is safe with either the `"C"` ABI or the new `"C unwind"` ABI, as long
+  as none of the unwound Rust frames contain destructors.
+* Unwinding from another language into Rust if the entrypoint to that language
+  is declared with `extern "C"` (contrary to the guidelines above): this is
+  always undefined behavior.
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
 
 This table shows the behavior of an unwinding operation reaching each type of
 ABI boundary (function declaration or definition). "UB" stands for undefined
-behavior.
+behavior. `"C"`-like ABIs are `"C"` itself but also related ABIs such as
+`"system"`.
 
 | panic runtime  | ABI          | `panic`-unwind                        | Forced unwind, no destructors | Forced unwind with destructors | Other foreign unwind |
 | -------------- | ------------ | ------------------------------------- | ----------------------------- | ------------------------------ | -------------------- |
