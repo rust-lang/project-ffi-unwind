@@ -124,7 +124,7 @@ behavior.
 
 | panic runtime  | ABI          | `panic`-unwind                        | Forced unwind, no destructors | Forced unwind with destructors | Other foreign unwind |
 | -------------- | ------------ | ------------------------------------- | ----------------------------- | ------------------------------ | -------------------- |
-| `panic=unwind` | `"C unwind"` | unwind                                | unwind                        | unwind                         | unwind               |
+| `panic=unwind` | `"C unwind"` | unwind                                | unwind                        | unwind (UB on most platforms)  | unwind               |
 | `panic=unwind` | `"C"`-like   | abort                                 | unwind                        | UB                             | UB                   |
 | `panic=abort`  | `"C unwind"` | `panic!` aborts                       | unwind                        | UB                             | abort                |
 | `panic=abort`  | `"C"`-like   | `panic!` aborts (no unwinding occurs) | unwind                        | UB                             | UB                   |
