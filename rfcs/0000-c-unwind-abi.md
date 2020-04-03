@@ -30,7 +30,8 @@ handling mechanism in GCC, LLVM, and MSVC.
 Additionally, there are libraries such as `rlua` that rely on `longjmp` across
 Rust frames; on Windows, `longjmp` is implemented via unwinding.
 
-<!-- TODO: links to prior discussions? -->
+The desire for this feature has been previously discussed on other RFCs,
+including #2699 and #2753.
 
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
@@ -70,8 +71,11 @@ the Rust entrypoint using `"C unwind"`.
 ## Forced unwinding
 
 This is a special kind of unwinding used to implement `longjmp` on Windows and
-`pthread_exit` in `glibc`.
-<!-- TODO: link to blog post, or is this sufficient? --> 
+`pthread_exit` in `glibc`. A brief explanation is provided in [this Inside Rust
+blog post][inside-rust-forced]. This RFC distinguishes forced unwinding from
+other types of foreign unwinding.
+
+[inside-rust-forced]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#forced-unwinding
 
 ## Changes to `extern "C"` behavior
 
@@ -122,8 +126,8 @@ No subtype relationship is defined between functions or function pointers using
 different ABIs. This RFC also does not define coercions between `"C"` and
 `"C unwind"`.
 
-As noted above, if a Rust frame is unwound by a foreign exception, the behavior
-is undefined for now.
+As noted in the [summary][summary], if a Rust frame containing `catch_unwind` is unwound by a
+foreign exception, the behavior is undefined for now.
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -146,14 +150,28 @@ introducing coercions between function types using different ABIs.
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
-<!-- TODO: 'requirements' from inside-rust post -->
+As explained in [this Inside Rust blog post][inside-rust-requirements], we have
+several requirements for any cross-language unwinding design:
+
+* We need to ensure that Rust may in the future adopt an alternate unwinding
+  mechanism; our design must continue working despite such a change.
+* With the `panic=abort` runtime, we must be able to optimize the binary size by removing most code related
+  to unwinding.
+* Changing the panic runtime from `panic=unwind` to `panic=abort` should generally not
+  cause undefined behavior. (Note that the current proposal does not fully
+  satisfy this criterion.)
+* We cannot change the ABI of functions in the `libc` crate, because this would
+  be a breaking change: function pointers of different ABIs have different
+  types.
+
+[inside-rust-requirements]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#requirements-for-any-cross-language-unwinding-specification
 
 ## Other proposals discussed with the lang team
 [alternatives]: #other-proposals-discussed-with-the-lang-team
 
 Two other potential designs have been discussed in depth; they are
-explained in [this blog post][inside-rust-post]. The design in this RFC is
-referred to as "option 2" in that post.
+explained in [this Inside Rust blog post][inside-rust-proposals]. The design in this
+RFC is referred to as "option 2" in that post.
 
 "Option 1" in that blog post only differs from the current proposal in the
 behavior of a forced unwind across a `"C unwind"` boundary under `panic=abort`.
@@ -169,6 +187,8 @@ undefined behavior in the current proposal.
 The other proposal in the blog post, "option 3", is dramatically different. In
 that proposal, foreign exceptions are permitted to cross `extern "C"`
 boundaries, and no new ABI is introduced.
+
+[inside-rust-proposals]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#three-specific-proposals
 
 ## Reasons for the current proposal
 [rationale]: #reasons-for-the-current-proposal
@@ -191,8 +211,6 @@ Our reasons for preferring the current proposal are:
   to translate between the Rust unwinding mechanism and the natively provided
   mechanism. In this proposal, only `"C unwind"` boundaries would require shims.
 
-[inside-rust-post]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html
-
 # Prior art
 [prior-art]: #prior-art
 
@@ -202,7 +220,7 @@ exception mechanism. However, in practice, the C++ exception mechanism is the
 
 On Microsoft platforms, when using MSVC, unwinding is always supported for both
 C++ and C code; this is very similar to "option 3" described in [the
-inside-rust post][inside-rust-post] mentioned [above][alternatives].
+inside-rust post][inside-rust-proposals] mentioned [above][alternatives].
 
 On other platforms, GCC, LLVM, and any related compilers provide a flag,
 `-fexceptions`, for explicitly ensuring that stack frames have unwinding
@@ -217,11 +235,11 @@ the new `"C unwind"` ABI.
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
 
-<!-- TODO -->
-
- `catch_unwind` (link to PR discussion)
-
-coercions
+The behavior of `catch_unwind` when a foreign exception encounters it is
+currently [left undefined][reference-level-explanation]. We would like to
+provide a well-defined behavior for this case, which will probably be either to
+let the exception pass through uncaught or to catch some or all foreign
+exceptions.
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
@@ -231,4 +249,9 @@ unwind mechanism.
 
 We may want to provide more means of interaction with foreign exceptions. For
 instance, it may be possible to provide a way for Rust to catch C++ exceptions
-and rethrow them from another thread.
+and rethrow them from another thread. See the [discussion
+above][unresolved-questions] about the behavior of `catch_unwind`.
+
+Coercions between `"C unwind"` function types (such as function pointers) and
+the other ABIs are not part of this RFC. However, they will probably be
+indispensible for API design, so we plan to provide them in a future RFC.
