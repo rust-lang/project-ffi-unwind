@@ -226,8 +226,9 @@ coercions
 # Future possibilities
 [future-possibilities]: #future-possibilities
 
-<!-- TODO -->
+As mentioned [above][rationale], shims will be required if Rust changes its
+unwind mechanism.
 
-more interactions w/ foreign exceptions
-
-shims will be required if Rust changes its unwind mechanism
+We may want to provide more means of interaction with foreign exceptions. For
+instance, it may be possible to provide a way for Rust to catch C++ exceptions
+and rethrow them from another thread.
