@@ -86,7 +86,7 @@ declared with `extern "C"`, caused undefined behavior.
 
 This RFC retains most of that undefined behavior, with two exceptions:
 
-* With the `panic=abort` runtime, `panic!` will cause an `abort` if it would
+* With the `panic=unwind` runtime, `panic!` will cause an `abort` if it would
   otherwise "escape" from a function defined with `extern "C"`.
 * Forced unwinding is safe with `extern "C"` as long as no frames with
   destructors (i.e. `Drop` types) are unwound.
