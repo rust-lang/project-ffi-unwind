@@ -104,8 +104,8 @@ If a non-forced foreign unwind would enter a Rust frame via an `extern "C
 unwind"` ABI boundary, but the Rust code is compiled with `panic=abort`, the
 unwind will be caught and the process aborted.
 
-There are some types of unwinding that are not guaranteed cause the program to
-abort with `panic=abort`, though:
+There are some types of unwinding that are not guaranteed to cause the program
+to abort with `panic=abort`, though:
 
 * Forced unwinding: Rust provides no mechanism to catch this type of unwinding.
   This is safe with either the `"C"` ABI or the new `"C unwind"` ABI, as long
