@@ -24,8 +24,9 @@ their desired functionality. One major example is WASM interpreters, including
 the Lucet and Wasmer projects.
 
 There are also existing Rust crates (notably, wrappers around the `libpng` and
-`libjpeg` C libraries) that rely on compatibility with the native exception
-handling mechanism in GCC, LLVM, and MSVC.
+`libjpeg` C libraries) that `panic` across C frames. The safety of such
+unwinding relies on compatibility between Rust's unwinding mechanism and the
+native exception mechanisms in GCC, LLVM, and MSVC.
 
 Additionally, there are libraries such as `rlua` that rely on `longjmp` across
 Rust frames; on Windows, `longjmp` is implemented via [forced
