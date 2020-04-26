@@ -35,7 +35,10 @@ to `longjmp` across Rust frames without `Drop` types, but this is not formally
 specified in an RFC or by the Reference.
 
 The desire for this feature has been previously discussed on other RFCs,
-including [#2699](https://github.com/rust-lang/rfcs/pull/2699) and [#2753](https://github.com/rust-lang/rfcs/pull/2573).
+including [#2699][rfc-2699] and [#2753][rfc-2753].
+
+[rfc-2699]: https://github.com/rust-lang/rfcs/pull/2699
+[rfc-2753]: https://github.com/rust-lang/rfcs/pull/2573
 
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
