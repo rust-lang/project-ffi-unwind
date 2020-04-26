@@ -75,12 +75,15 @@ This is a special kind of unwinding used to implement `longjmp` on Windows and
 blog post][inside-rust-forced]. This RFC distinguishes forced unwinding from
 other types of foreign unwinding.
 
-Since language features implemented using forced unwinding on some platforms
-use other mechanisms on other platforms, Rust code should not rely on forced
-unwinding to invoke destructors (calling `drop` on `Drop` types). External
-functions that do not initiate unforced unwinding (such as C++ style
-exceptions), but may cause a forced unwind on certain platforms, should
-therefore be declared with the `"C"` ABI rather than the `"C unwind"` ABI.
+Since language features and library functions implemented using forced
+unwinding on some platforms use other mechanisms on other platforms, Rust code
+cannot rely on forced unwinding to invoke destructors (calling `drop` on `Drop`
+types). In other words, a forced unwind operation on one platform will simply
+deallocate Rust frames without true unwinding on other platforms.
+
+This RFC specifies that it is undefined behavior to cross Rust frames with
+destructors via such language features and library functions, regardless of the
+platform.
 
 [inside-rust-forced]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#forced-unwinding
 
@@ -96,7 +99,8 @@ This RFC retains most of that undefined behavior, with two exceptions:
 * With the `panic=unwind` runtime, `panic!` will cause an `abort` if it would
   otherwise "escape" from a function defined with `extern "C"`.
 * Forced unwinding is safe with `extern "C"` as long as no frames with
-  destructors (i.e. `Drop` types) are unwound.
+  destructors (i.e. `Drop` types) are unwound. This is to keep behavior of
+  `pthread_exit` and `longjmp` consistent across platforms.
 
 ## Interaction with `panic=abort`
 
@@ -122,12 +126,20 @@ ABI boundary (function declaration or definition). "UB" stands for undefined
 behavior. `"C"`-like ABIs are `"C"` itself but also related ABIs such as
 `"system"`.
 
-| panic runtime  | ABI          | `panic`-unwind                        | Forced unwind, no destructors | Forced unwind with destructors | Other foreign unwind |
-| -------------- | ------------ | ------------------------------------- | ----------------------------- | ------------------------------ | -------------------- |
-| `panic=unwind` | `"C unwind"` | unwind                                | unwind                        | unwind (UB on most platforms)  | unwind               |
-| `panic=unwind` | `"C"`-like   | abort                                 | unwind                        | UB                             | UB                   |
-| `panic=abort`  | `"C unwind"` | `panic!` aborts                       | unwind                        | UB                             | abort                |
-| `panic=abort`  | `"C"`-like   | `panic!` aborts (no unwinding occurs) | unwind                        | UB                             | UB                   |
+| panic runtime  | ABI          | `panic`-unwind                        | Unforced foreign unwind |
+| -------------- | ------------ | ------------------------------------- | ----------------------- |
+| `panic=unwind` | `"C unwind"` | unwind                                | unwind                  |
+| `panic=unwind` | `"C"`-like   | abort                                 | UB                      |
+| `panic=abort`  | `"C unwind"` | `panic!` aborts                       | abort                   |
+| `panic=abort`  | `"C"`-like   | `panic!` aborts (no unwinding occurs) | UB                      |
+
+Regardless of the panic runtime, ABI, or platform, the interaction of Rust
+frames with C functions that deallocate frames (i.e. functions that may use
+forced unwinding on specific platforms) is specified as follows:
+
+* **When deallocating Rust frames without destructors:** frames are safely
+  deallocated; no undefined behavior
+* **When deallocating Rust frames with destructors:** undefined behavior
 
 No subtype relationship is defined between functions or function pointers using
 different ABIs. This RFC also does not define coercions between `"C"` and
@@ -139,14 +151,10 @@ foreign exception, the behavior is undefined for now.
 # Drawbacks
 [drawbacks]: #drawbacks
 
-There is still an instance of undefined behavior with this proposal: when a
-forced unwind crosses a Rust frame with destructors, the behavior under
-`panic=abort` is undefined. This means that there are some cases in which a
-program that is well-defined under `panic=unwind` will not be well-defined
-under `panic=abort`. As noted [above][forced-unwinding], however, language
-features using forced unwinding on one platform generally do not involve any
-form of unwinding on other platforms, so such a program would have undefined
-behavior even with `panic=unwind` on most platforms.
+Forced unwinding is treated as universally unsafe across frames with
+destructors, but on some platforms it could theoretically be well-defined. As
+noted [above][forced-unwind], however, this would make the UB inconsistent
+across platforms, which is not desirable.
 
 This design imposes some burden on existing codebases (mentioned
 [above][motivation]) to change their `extern` annotations to use the new ABI.
