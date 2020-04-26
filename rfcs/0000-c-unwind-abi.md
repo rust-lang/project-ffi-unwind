@@ -28,7 +28,10 @@ There are also existing Rust crates (notably, wrappers around the `libpng` and
 handling mechanism in GCC, LLVM, and MSVC.
 
 Additionally, there are libraries such as `rlua` that rely on `longjmp` across
-Rust frames; on Windows, `longjmp` is implemented via unwinding.
+Rust frames; on Windows, `longjmp` is implemented via [forced
+unwinding](forced-unwinding). The current `rustc` implementation makes it safe
+to `longjmp` across Rust frames without `Drop` types, but this is not formally
+specified in an RFC or by the Reference.
 
 The desire for this feature has been previously discussed on other RFCs,
 including #2699 and #2753.
@@ -153,7 +156,7 @@ foreign exception, the behavior is undefined for now.
 
 Forced unwinding is treated as universally unsafe across frames with
 destructors, but on some platforms it could theoretically be well-defined. As
-noted [above][forced-unwind], however, this would make the UB inconsistent
+noted [above](forced-unwind), however, this would make the UB inconsistent
 across platforms, which is not desirable.
 
 This design imposes some burden on existing codebases (mentioned
