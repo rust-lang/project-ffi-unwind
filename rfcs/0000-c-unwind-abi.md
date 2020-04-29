@@ -101,13 +101,19 @@ cannot rely on forced unwinding to invoke destructors (calling `drop` on `Drop`
 types). In other words, a forced unwind operation on one platform will simply
 deallocate Rust frames without true unwinding on other platforms.
 
-This RFC specifies that:
+This RFC specifies that, regardless of the platform or the ABI string (`"C"` or
+`"C unwind"`), any platform features that may rely on forced unwinding are:
 
-* It is undefined behavior to cross Rust frames with destructors via such
-  language features and library functions, regardless of the platform or the
-  ABI.
-* Conversely, such language features may always safely cross Rust frames
-  _without_ destructors.
+* _undefined behavior_ if they cross frames with destructors or a
+  `catch_unwind` call
+* _defined behavior_ otherwise
+
+As an example, this means that Rust code can (indirectly, via C) invoke
+`longjmp` using the "C" ABI, and that `longjmp` can unwind or otherwise cross
+Rust frames, so long as those frames do not contain any pending destructors or
+make use of `catch_unwind`. If those Rust frames do contain pending
+destructors, then invoking `longjmp` would be undefined behavior (and hence a
+bug).
 
 [inside-rust-forced]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#forced-unwinding
 
@@ -244,11 +250,10 @@ Our reasons for preferring the current proposal are:
   undefined behavior except with improperly used forced unwinding), but `extern
   "C"` has more optimization potential (eliding landing pads). Having two ABIs
   puts this choice in the hands of users.
-  * Additionally, there are very few cases in which the current proposal
-    permits the `panic=abort` runtime to introduce undefined behavior to a
-    program that is well-defined under `panic=unwind`. The "option 3" proposal
-    causes any foreign exception entering Rust to have undefined behavior under
-    `panic=abort`.
+  * The single-ABI proposal ("option 3") causes any foreign exception entering
+    Rust to have undefined behavior under `panic=abort`, whereas the current
+    proposal does not permit the `panic=abort` runtime to introduce undefined
+    behavior to a program that is well-defined under `panic=unwind`.
   * This optimization could be made available with a single ABI by means of an
     annotation indicating that a function cannot unwind (similar to C++'s
     `noexcept`). However, Rust does not yet support annotations for function
