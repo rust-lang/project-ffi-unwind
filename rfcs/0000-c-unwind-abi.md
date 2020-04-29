@@ -292,14 +292,14 @@ the new `"C unwind"` ABI.
 Currently, nightly Rust provides attributes, `#[unwind(allowed)]` and
 `#[unwind(abort)]`, for making the behavior of `panic` crossing a `"C"` ABI
 boundary well defined.
-<!-- XXX TODO explain why new ABI string is preferable to attributes -->
+<!-- TODO explain why new ABI string is preferable to attributes -->
 
 ## Prior RFCs and other discussions
 
 There were two previous RFCs, [#2699][rfc-2699] and [#2753][rfc-2753], that
 attempted to introduce a well-defined way for uwnding to cross FFI boundaries.
 
-<!-- XXX TODO other discussions:
+<!-- TODO other discussions:
 Tickets:
 * https://github.com/rust-lang/rust/issues/58794
 * https://github.com/rust-lang/rust/issues/52652
