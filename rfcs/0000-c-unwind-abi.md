@@ -2,8 +2,9 @@
 - Start Date: 2019-04-03
 - RFC PR: [rust-lang/rfcs#0000](https://github.com/rust-lang/rfcs/pull/0000)
 - Rust Issue: [rust-lang/rust#0000](https://github.com/rust-lang/rust/issues/0000)
-<!-- This could be added to the RFC template if the 'project group' concept
-becomes a formal part of the pre-RFC process. -->
+<!-- TODO: is this the best place to link to the project group? This could be
+added to the RFC template if the 'project group' concept becomes a formal part
+of the pre-RFC process. -->
 - Project group: [FFI-unwind][project-group]
 
 [project-group]: https://github.com/rust-lang/project-ffi-unwind
@@ -43,9 +44,6 @@ specified in an RFC or by the Reference.
 
 The desire for this feature has been previously discussed on other RFCs,
 including [#2699][rfc-2699] and [#2753][rfc-2753].
-
-[rfc-2699]: https://github.com/rust-lang/rfcs/pull/2699
-[rfc-2753]: https://github.com/rust-lang/rfcs/pull/2573
 
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
@@ -285,9 +283,31 @@ foreign exceptions as well. In the current proposal, though, such foreign
 exception support is not enabled by default with `panic=unwind` but requires
 the new `"C unwind"` ABI.
 
+## Attributes on nightly Rust
+
+Currently, nightly Rust provides attributes, `#[unwind(allowed)]` and
+`#[unwind(abort)]`, for making the behavior of `panic` crossing a `"C"` ABI
+boundary well defined.
+<!-- XXX TODO explain why new ABI string is preferable to attributes -->
+
 ## Prior RFCs and other discussions
 
-<!-- XXX TODO -->
+There were two previous RFCs, [#2699][rfc-2699] and [#2753][rfc-2753], that
+attempted to introduce a well-defined way for uwnding to cross FFI boundaries.
+
+<!-- XXX TODO other discussions:
+Tickets:
+* https://github.com/rust-lang/rust/issues/58794
+* https://github.com/rust-lang/rust/issues/52652
+* https://github.com/rust-lang/rust/issues/58760
+* https://github.com/rust-lang/rust/pull/55982
+
+Discourse:
+https://internals.rust-lang.org/t/unwinding-through-ffi-after-rust-1-33/9521?u=batmanaod
+-->
+
+[rfc-2699]: https://github.com/rust-lang/rfcs/pull/2699
+[rfc-2753]: https://github.com/rust-lang/rfcs/pull/2573
 
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
