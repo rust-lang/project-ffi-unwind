@@ -2,19 +2,26 @@
 - Start Date: 2019-04-03
 - RFC PR: [rust-lang/rfcs#0000](https://github.com/rust-lang/rfcs/pull/0000)
 - Rust Issue: [rust-lang/rust#0000](https://github.com/rust-lang/rust/issues/0000)
+<!-- This could be added to the RFC template if the 'project group' concept
+becomes a formal part of the pre-RFC process. -->
+- Project group: [FFI-unwind][project-group]
+
+[project-group]: https://github.com/rust-lang/project-ffi-unwind
 
 # Summary
 [summary]: #summary
 
-Introduces a new ABI string, `"C unwind"`, to enable unwinding from other
+We introduce a new ABI string, `"C unwind"`, to enable unwinding from other
 languages (such as C++) into Rust frames and from Rust into other languages.
 
-Additionally, defines the behavior for a limited number of previously-undefined
-cases when an unwind operation reaches a Rust function boundary with a
-non-`"Rust"`, non-`"C"` ABI.
+Additionally, we define the behavior for a limited number of
+previously-undefined cases when an unwind operation reaches a Rust function
+boundary with a non-`"Rust"`, non-`"C unwind"` ABI.
 
 This RFC does not define the behavior of `catch_unwind` in a Rust frame being
-unwound by a foreign exception.
+unwound by a foreign exception. This is something the [project
+group][project-group] would like to specify in a future RFC; as such, it is
+"TBD" (see ["Unresolved questions"][unresolved-questions]).
 
 # Motivation
 [motivation]: #motivation
@@ -43,8 +50,14 @@ including [#2699][rfc-2699] and [#2753][rfc-2753].
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
 
+Functions declared with `extern "C"` are generally not permitted to unwind
+(with some very narrow exceptions, described [below][forced-unwinding]).
+This means, for example, that such a function cannot throw an uncaught C++
+exception, and it also cannot invoke Rust code that may panic (unless that
+panic is caught with `catch_panic`).
+
 When declaring an external function that may unwind, such as an entrypoint to a
-C++ library, use `"C unwind"`:
+C++ library, use `"C unwind"` instead:
 
 ```
 extern "C unwind" {
@@ -88,9 +101,13 @@ cannot rely on forced unwinding to invoke destructors (calling `drop` on `Drop`
 types). In other words, a forced unwind operation on one platform will simply
 deallocate Rust frames without true unwinding on other platforms.
 
-This RFC specifies that it is undefined behavior to cross Rust frames with
-destructors via such language features and library functions, regardless of the
-platform.
+This RFC specifies that:
+
+* It is undefined behavior to cross Rust frames with destructors via such
+  language features and library functions, regardless of the platform or the
+  ABI.
+* Conversely, such language features may always safely cross Rust frames
+  _without_ destructors.
 
 [inside-rust-forced]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#forced-unwinding
 
@@ -263,6 +280,10 @@ foreign exceptions as well. In the current proposal, though, such foreign
 exception support is not enabled by default with `panic=unwind` but requires
 the new `"C unwind"` ABI.
 
+## Prior RFCs and other discussions
+
+<!-- XXX TODO -->
+
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
 
@@ -272,17 +293,26 @@ provide a well-defined behavior for this case, which will probably be either to
 let the exception pass through uncaught or to catch some or all foreign
 exceptions.
 
+Within the context of this RFC and in discussions among members of the
+[FFI-unwind project group][project-group], this class of formally-undefined
+behavior which we plan to define at later date is referred to as "TBD
+behavior".
+
 # Future possibilities
 [future-possibilities]: #future-possibilities
 
-As mentioned [above][rationale], shims will be required if Rust changes its
-unwind mechanism.
+The [FFI-unwind project group][project-group] intends to remain active at least
+until all ["TBD behavior"][unresolved-questions] is defined.
 
 We may want to provide more means of interaction with foreign exceptions. For
 instance, it may be possible to provide a way for Rust to catch C++ exceptions
-and rethrow them from another thread. See the [discussion
-above][unresolved-questions] about the behavior of `catch_unwind`.
+and rethrow them from another thread. Such a mechanism may either be
+incorporated into the functionality of `catch_unwind` or provided as a separate
+language or standard library feature.
 
 Coercions between `"C unwind"` function types (such as function pointers) and
 the other ABIs are not part of this RFC. However, they will probably be
 indispensible for API design, so we plan to provide them in a future RFC.
+
+As mentioned [above][rationale], shims will be required if Rust changes its
+unwind mechanism.
