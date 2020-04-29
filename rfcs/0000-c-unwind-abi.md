@@ -45,6 +45,34 @@ specified in an RFC or by the Reference.
 The desire for this feature has been previously discussed on other RFCs,
 including [#2699][rfc-2699] and [#2753][rfc-2753].
 
+## Key design goals
+
+The design in this RFC is meant to uphold a number of design
+constraints, listed here. The detailed design section contains an
+analysis of how well the current design maintains these constraints.
+
+* **Changing from panic=unwind to panic=abort cannot cause UB:** We
+  wish to ensure that choosing `panic=abort` doesn't ever create
+  undefined behavior (relate to `panic=unwind`), even if one is
+  relying on a library that triggers a panic or a foreign exception.
+* **Optimization with panic=abort:** when using `-Cpanic=abort`, we
+  wish to enable as many code-size optimizations as possible. This
+  means that we shouldn't have to generate unwinding tables or other
+  such constructs, at least in most cases.
+* **Preserve the ability to change how Rust panics are propagated when
+  using the Rust ABI:** Currently, Rust panics are propagated using
+  the native unwinding mechanism, but we would like to keep the
+  freedom to change that.
+* **Enable Rust panics to traverse through foreign frames:** Several
+  projects would like the ability to have Rust panics propagate
+  through foreign frames.  Those frames may or may not register
+  destructors of their own with the native unwinding mechanism.
+* **Enable foreign exceptions to propagate through Rust frames:**
+  Similarly, we would like to make it possible for C++ code (or other
+  languages) to raise exceptions that will propagate through Rust
+  frames "as if" they were Rust panics (i.e., running destrutors or,
+  in the case of `unwind=abort`, aborting the program).
+
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
 
@@ -69,7 +97,8 @@ the `"C unwind"` ABI:
 
 ```
 extern "C unwind" fn can_unwind() {
-  // ...
+  may_throw();
+}
 ```
 
 Using the `"C unwind"` ABI to "sandwich" Rust frames between frames from
@@ -175,6 +204,50 @@ different ABIs. This RFC also does not define coercions between `"C"` and
 
 As noted in the [summary][summary], if a Rust frame containing `catch_unwind` is unwound by a
 foreign exception, the behavior is undefined for now.
+
+## Analysis of key design goals
+
+This section revisits the key design goals to assess how well they
+are met by the proposed design.
+
+### Changing from panic=unwind to panic=abort cannot cause UB
+
+This constraint is met:
+
+* Unwinding across a "C" boundary is UB regardless
+  of whether one is using `panic=unwind` or `panic=abort`.
+* Unwinding across a "C unwind" boundary is always defined,
+  though it is defined to abort if `panic=abort` is used.
+* Forced exceptions behave the same regardless of panic mode.
+
+### Optimization with panic=abort
+
+Using this proposal, the compiler is **almost always** able to reduce
+overhead related to unwinding when using panic=abort. The one
+exception is that invoking a "C unwind" ABI still requires some kind
+of minimal landing pad to trigger an abort. The expectation is that
+very few functions will use the "C unwind" boundary unless they truly
+intend to unwind -- and, in that case, those functions are likely
+using panic=unwind anyway, so this is not expected to make much
+difference in practice.
+
+### Preserve the ability to change how Rust panics are propagated when using the Rust ABI
+
+This constraint is met. If we were to change Rust panics to a
+different mechanism from the mechanism used by the native ABI,
+however, there would have to be a conversion step that interconverts
+between Rust panics and foreign exceptions at "C unwind" ABI
+boundaries.
+
+### Enable Rust panics to traverse through foreign frames
+
+This constraint is met.
+
+### Enable foreign exceptions to propagate through Rust frame
+
+This constraint is partially met -- the behavior of foreign exceptions
+with respect to `catch_unwind` is currently undefined, and left for
+future work.
 
 # Drawbacks
 [drawbacks]: #drawbacks
