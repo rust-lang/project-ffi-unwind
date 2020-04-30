@@ -47,9 +47,11 @@ including [#2699][rfc-2699] and [#2753][rfc-2753].
 
 ## Key design goals
 
-The design in this RFC is meant to uphold a number of design
-constraints, listed here. The detailed design section contains an
-analysis of how well the current design maintains these constraints.
+As explained in [this Inside Rust blog post][inside-rust-requirements], we have
+several requirements for any cross-language unwinding design.
+
+The ["Analysis of key design goals"][analysis-of-design-goals] section analyzes
+how well the current design satisfies these constraints.
 
 * **Changing from panic=unwind to panic=abort cannot cause UB:** We
   wish to ensure that choosing `panic=abort` doesn't ever create
@@ -72,6 +74,10 @@ analysis of how well the current design maintains these constraints.
   languages) to raise exceptions that will propagate through Rust
   frames "as if" they were Rust panics (i.e., running destrutors or,
   in the case of `unwind=abort`, aborting the program).
+* **Do not change the ABI of functions in the `libc` crate:** This would
+  be a breaking change.
+
+  [inside-rust-requirements]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#requirements-for-any-cross-language-unwinding-specification
 
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
@@ -205,50 +211,6 @@ different ABIs. This RFC also does not define coercions between `"C"` and
 As noted in the [summary][summary], if a Rust frame containing `catch_unwind` is unwound by a
 foreign exception, the behavior is undefined for now.
 
-## Analysis of key design goals
-
-This section revisits the key design goals to assess how well they
-are met by the proposed design.
-
-### Changing from panic=unwind to panic=abort cannot cause UB
-
-This constraint is met:
-
-* Unwinding across a "C" boundary is UB regardless
-  of whether one is using `panic=unwind` or `panic=abort`.
-* Unwinding across a "C unwind" boundary is always defined,
-  though it is defined to abort if `panic=abort` is used.
-* Forced exceptions behave the same regardless of panic mode.
-
-### Optimization with panic=abort
-
-Using this proposal, the compiler is **almost always** able to reduce
-overhead related to unwinding when using panic=abort. The one
-exception is that invoking a "C unwind" ABI still requires some kind
-of minimal landing pad to trigger an abort. The expectation is that
-very few functions will use the "C unwind" boundary unless they truly
-intend to unwind -- and, in that case, those functions are likely
-using panic=unwind anyway, so this is not expected to make much
-difference in practice.
-
-### Preserve the ability to change how Rust panics are propagated when using the Rust ABI
-
-This constraint is met. If we were to change Rust panics to a
-different mechanism from the mechanism used by the native ABI,
-however, there would have to be a conversion step that interconverts
-between Rust panics and foreign exceptions at "C unwind" ABI
-boundaries.
-
-### Enable Rust panics to traverse through foreign frames
-
-This constraint is met.
-
-### Enable foreign exceptions to propagate through Rust frame
-
-This constraint is partially met -- the behavior of foreign exceptions
-with respect to `catch_unwind` is currently undefined, and left for
-future work.
-
 # Drawbacks
 [drawbacks]: #drawbacks
 
@@ -269,22 +231,6 @@ exceptions) would be simpler to learn and use than two separate ABIs.
 
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
-
-As explained in [this Inside Rust blog post][inside-rust-requirements], we have
-several requirements for any cross-language unwinding design:
-
-* We need to ensure that Rust may in the future adopt an alternate unwinding
-  mechanism; our design must continue working despite such a change.
-* With the `panic=abort` runtime, we must be able to optimize the binary size by removing most code related
-  to unwinding.
-* Changing the panic runtime from `panic=unwind` to `panic=abort` should generally not
-  cause undefined behavior. (Note that the current proposal does not fully
-  satisfy this criterion.)
-* We cannot change the ABI of functions in the `libc` crate, because this would
-  be a breaking change: function pointers of different ABIs have different
-  types.
-
-[inside-rust-requirements]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#requirements-for-any-cross-language-unwinding-specification
 
 ## Other proposals discussed with the lang team
 [alternatives]: #other-proposals-discussed-with-the-lang-team
@@ -338,6 +284,55 @@ Our reasons for preferring the current proposal are:
   implementations. Any well-defined cross-language unwinding will require shims
   to translate between the Rust unwinding mechanism and the natively provided
   mechanism. In this proposal, only `"C unwind"` boundaries would require shims.
+
+## Analysis of key design goals
+[analysis-of-design-goals]: #analysis-of-design-goals
+
+This section revisits the key design goals to assess how well they
+are met by the proposed design.
+
+### Changing from panic=unwind to panic=abort cannot cause UB
+
+This constraint is met:
+
+* Unwinding across a "C" boundary is UB regardless
+    of whether one is using `panic=unwind` or `panic=abort`.
+* Unwinding across a "C unwind" boundary is always defined,
+    though it is defined to abort if `panic=abort` is used.
+* Forced exceptions behave the same regardless of panic mode.
+
+### Optimization with panic=abort
+
+Using this proposal, the compiler is **almost always** able to reduce
+overhead related to unwinding when using panic=abort. The one
+exception is that invoking a "C unwind" ABI still requires some kind
+of minimal landing pad to trigger an abort. The expectation is that
+very few functions will use the "C unwind" boundary unless they truly
+intend to unwind -- and, in that case, those functions are likely
+using panic=unwind anyway, so this is not expected to make much
+difference in practice.
+
+### Preserve the ability to change how Rust panics are propagated when using the Rust ABI
+
+This constraint is met. If we were to change Rust panics to a
+different mechanism from the mechanism used by the native ABI,
+however, there would have to be a conversion step that interconverts
+between Rust panics and foreign exceptions at "C unwind" ABI
+boundaries.
+
+### Enable Rust panics to traverse through foreign frames
+
+This constraint is met.
+
+### Enable foreign exceptions to propagate through Rust frame
+
+This constraint is partially met: the behavior of foreign exceptions
+with respect to `catch_unwind` is currently undefined, and left for
+future work.
+
+### Do not change the ABI of functions in the `libc` crate
+
+This constraint is met: `libc` functions will continue to use the `"C"` ABI.
 
 # Prior art
 [prior-art]: #prior-art
