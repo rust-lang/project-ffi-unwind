@@ -52,7 +52,7 @@ Functions declared with `extern "C"` are generally not permitted to unwind
 (with some very narrow exceptions, described [below][forced-unwinding]).
 This means, for example, that such a function cannot throw an uncaught C++
 exception, and it also cannot invoke Rust code that may panic (unless that
-panic is caught with `catch_panic`).
+panic is caught with `catch_unwind`).
 
 When declaring an external function that may unwind, such as an entrypoint to a
 C++ library, use `"C unwind"` instead:
