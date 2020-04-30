@@ -38,7 +38,7 @@ native exception mechanisms in GCC, LLVM, and MSVC.
 
 Additionally, there are libraries such as `rlua` that rely on `longjmp` across
 Rust frames; on Windows, `longjmp` is implemented via [forced
-unwinding](forced-unwinding). The current `rustc` implementation makes it safe
+unwinding][forced-unwinding]. The current `rustc` implementation makes it safe
 to `longjmp` across Rust frames without `Drop` types, but this is not formally
 specified in an RFC or by the Reference.
 
@@ -74,12 +74,19 @@ how well the current design satisfies these constraints.
   languages) to raise exceptions that will propagate through Rust
   frames "as if" they were Rust panics (i.e., running destrutors or,
   in the case of `unwind=abort`, aborting the program).
+* **Enable error handling with `longjmp`:** As mentioned above, some existing
+  Rust libraries use `longjmp`. Despite the fact that `longjmp` on Windows is
+  [technically a form of unwinding][forced-unwinding], using `longjmp` across
+  Rust frames [is safe][longjmp-pr] with the current implementation of `rustc`,
+  and we want to specify that this will remain safe.
 * **Do not change the ABI of functions in the `libc` crate:** Some `libc`
-  functions may invoke `pthread_exit`; such functions must be safe to use with
-  the existing `"C"` ABI. Changing the types of these functions would be a
-  breaking change. 
+  functions may invoke `pthread_exit`, which uses [a form of
+  unwinding][forced-unwinding] in the GNU libc implementation. Such functions
+  must be safe to use with the existing `"C"` ABI, because changing the types
+  of these functions would be a breaking change. 
 
   [inside-rust-requirements]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#requirements-for-any-cross-language-unwinding-specification
+  [longjmp-pr]: https://github.com/rust-lang/rust/pull/48572
 
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
@@ -332,9 +339,18 @@ This constraint is partially met: the behavior of foreign exceptions
 with respect to `catch_unwind` is currently undefined, and left for
 future work.
 
+### Enable error handling with `longjmp`
+
+This constraint is met: `longjmp` is treated the same across all platforms, and
+is safe as long as the deallocated Rust frames do not contain pending `drop` or
+`catch_unwind` calls.
+
 ### Do not change the ABI of functions in the `libc` crate
 
 This constraint is met: `libc` functions will continue to use the `"C"` ABI.
+`pthread_exit` will be treated the same across all platforms, and will be safe
+as long as the deallocated Rust frames do not contain pending `drop` or
+`catch_unwind` calls. 
 
 # Prior art
 [prior-art]: #prior-art
