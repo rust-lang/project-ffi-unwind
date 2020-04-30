@@ -74,8 +74,10 @@ how well the current design satisfies these constraints.
   languages) to raise exceptions that will propagate through Rust
   frames "as if" they were Rust panics (i.e., running destrutors or,
   in the case of `unwind=abort`, aborting the program).
-* **Do not change the ABI of functions in the `libc` crate:** This would
-  be a breaking change.
+* **Do not change the ABI of functions in the `libc` crate:** Some `libc`
+  functions may invoke `pthread_exit`; such functions must be safe to use with
+  the existing `"C"` ABI. Changing the types of these functions would be a
+  breaking change. 
 
   [inside-rust-requirements]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#requirements-for-any-cross-language-unwinding-specification
 
