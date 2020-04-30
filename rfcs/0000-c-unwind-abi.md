@@ -28,7 +28,7 @@ group][project-group] would like to specify in a future RFC; as such, it is
 [motivation]: #motivation
 
 There are some Rust projects that need cross-language unwinding to provide
-their desired functionality. One major example is WASM interpreters, including
+their desired functionality. One major example is Wasm interpreters, including
 the Lucet and Wasmer projects.
 
 There are also existing Rust crates (notably, wrappers around the `libpng` and
