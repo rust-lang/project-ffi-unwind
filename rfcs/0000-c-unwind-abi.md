@@ -2,9 +2,6 @@
 - Start Date: 2019-04-03
 - RFC PR: [rust-lang/rfcs#0000](https://github.com/rust-lang/rfcs/pull/0000)
 - Rust Issue: [rust-lang/rust#0000](https://github.com/rust-lang/rust/issues/0000)
-<!-- TODO: is this the best place to link to the project group? This could be
-added to the RFC template if the 'project group' concept becomes a formal part
-of the pre-RFC process. -->
 - Project group: [FFI-unwind][project-group]
 
 [project-group]: https://github.com/rust-lang/project-ffi-unwind
