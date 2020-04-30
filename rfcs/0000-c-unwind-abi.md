@@ -265,10 +265,6 @@ boundaries, and no new ABI is introduced.
 ## Reasons for the current proposal
 [rationale]: #reasons-for-the-current-proposal
 
-<!-- TODO: list non-negotiable constraints? These are listed in the blog post,
-so we could at least link to that. Niko's list is here:
-https://github.com/rust-lang/project-ffi-unwind/pull/28/files#r417499824 -->
-
 Our reasons for preferring the current proposal are:
 
 * Introducing a new ABI makes reliance on cross-language exception handling
