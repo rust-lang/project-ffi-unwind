@@ -1,3 +1,5 @@
+<!-- published as https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html -->
+
 # Announcing the first FFI-unwind project design meeting
 
 -- Kyle Strand, Niko Matsakis, and Amanieu d'Antras on behalf of the FFI-unwind project group --
