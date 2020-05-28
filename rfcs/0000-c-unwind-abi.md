@@ -134,7 +134,7 @@ the Rust entrypoint using `"C unwind"`.
 [POF-definition]: #plain-old-frames
 
 A "POF", or "Plain Old Frame", is defined as a frame that can be trivially
-deallocated; that is, returning from or unwinding a POF cannot cause any
+deallocated: returning from or unwinding a POF cannot cause any
 observable effects. This means that POFs do not contain any pending destructors
 (live `Drop` objects) or `catch_unwind` calls.
 
