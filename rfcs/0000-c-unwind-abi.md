@@ -301,11 +301,12 @@ Our reasons for preferring the current proposal are:
     Rust to have undefined behavior under `panic=abort`, whereas the current
     proposal does not permit the `panic=abort` runtime to introduce undefined
     behavior to a program that is well-defined under `panic=unwind`.
-  * This optimization could be made available with a single ABI by means of an
-    annotation indicating that a function cannot unwind (similar to C++'s
-    `noexcept`). However, Rust does not yet support annotations for function
-    pointers, so until that feature is added, such an annotation could not be
-    applied to function pointers.
+  * This optimization could be made available with a single ABI by means of a
+    function attribute indicating that a function cannot unwind (similar to C++'s
+    `noexcept`). Such attributes [are already available in nightly
+    Rust][nightly-attributes]. However, Rust does not yet support attributes
+    for function pointers, so until that feature is added, there would be no
+    way to indicate whether function pointers unwind using an attribute.
 * This design has simpler forward compatibility with alternate `panic!`
   implementations. Any well-defined cross-language unwinding will require shims
   to translate between the Rust unwinding mechanism and the natively provided
@@ -388,18 +389,37 @@ foreign exceptions as well. In the current proposal, though, such foreign
 exception support is not enabled by default with `panic=unwind` but requires
 the new `"C unwind"` ABI.
 
-## Attributes on nightly Rust
+## Attributes on nightly Rust and prior RFCs
+[nightly-attributes]: #attributes-on-nightly-rust-and-prior-rfcs
 
 Currently, nightly Rust provides attributes, `#[unwind(allowed)]` and
 `#[unwind(abort)]`, for making the behavior of `panic` crossing a `"C"` ABI
-boundary well defined.
-<!-- TODO explain why new ABI string is preferable to attributes -->
+boundary well defined. Two previous RFCs, [#2699][rfc-2699] and
+[#2753][rfc-2753], attempted to stabilize these or similar attributes.
 
-## Prior RFCs and other discussions
+The attribute approach was deemed insufficient:
 
-There were two previous RFCs, [#2699][rfc-2699] and [#2753][rfc-2753], that
-attempted to introduce a well-defined way for uwnding to cross FFI boundaries.
+* Currently, Rust does not support attributes on function pointers. This may
+  change in the future, but until then, attributes cannot provide any way to
+  differentiate function pointers that may unwind from those that are
+  guaranteed not to. Assuming that no function pointers may unwind is not
+  viable, because that severly limits the utility of cross-FFI unwinding.
+  Conversely, assuming that all `extern "C"` function pointers may unwind is
+  inconsistent with the no-unwind default for `extern "C"` functions.
+* The existence of a compatible unwind mechanism on both sides of a function
+  invocation boundary is part of the binary interface for that invocation, so
+  the ABI string is a more appropriate part of the language syntax than
+  function attributes to indicate that unwinding may occur.
+* The ability of a function to unwind must be part of the type system to ensure
+  that callers that cannot unwind don't invoke functions that can unwind.
+  Although attributes are sometimes part of a function's type, a function's ABI
+  string is always part of its type, so we are not introducing anything new to
+  the type system.
 
+[rfc-2699]: https://github.com/rust-lang/rfcs/pull/2699
+[rfc-2753]: https://github.com/rust-lang/rfcs/pull/2753
+
+## Other discussions
 <!-- TODO other discussions:
 Tickets:
 * https://github.com/rust-lang/rust/issues/58794
@@ -410,9 +430,6 @@ Tickets:
 Discourse:
 https://internals.rust-lang.org/t/unwinding-through-ffi-after-rust-1-33/9521?u=batmanaod
 -->
-
-[rfc-2699]: https://github.com/rust-lang/rfcs/pull/2699
-[rfc-2753]: https://github.com/rust-lang/rfcs/pull/2573
 
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
