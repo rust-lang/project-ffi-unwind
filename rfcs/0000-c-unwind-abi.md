@@ -35,7 +35,10 @@ the Lucet and Wasmer projects.
 There are also existing Rust crates (notably, wrappers around the `libpng` and
 `libjpeg` C libraries) that `panic` across C frames. The safety of such
 unwinding relies on compatibility between Rust's unwinding mechanism and the
-native exception mechanisms in GCC, LLVM, and MSVC.
+native exception mechanisms in GCC, LLVM, and MSVC. Despite using a compatible
+unwinding mechanism, the current `rustc` implementation assumes that `extern
+"C"` functions cannot unwind, which permits LLVM to optimize with the
+assumption that such unwinding constitutes undefined behavior.
 
 Additionally, there are libraries such as `rlua` that rely on `longjmp` across
 Rust frames; on Windows, `longjmp` is implemented via [forced
@@ -180,6 +183,7 @@ Rust [POFs][POF-definition]. If those Rust frames are not POFs, then invoking
 [inside-rust-forced]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#forced-unwinding
 
 ## Changes to `extern "C"` behavior
+[extern-c-behavior]: #changes-to-extern-c-behavior
 
 Prior to this RFC, any unwinding operation that crossed an `extern "C"`
 boundary, either from a `panic!` "escaping" from a Rust function defined with
@@ -394,9 +398,10 @@ the new `"C unwind"` ABI.
 
 Currently, nightly Rust provides attributes, `#[unwind(allowed)]` and
 `#[unwind(abort)]`, that permit users to select a well-defined behavior when a
-`panic` reaches an `extern "C"` function boundary. Two previous RFCs,
-[#2699][rfc-2699] and [#2753][rfc-2753], attempted to stabilize these or
-similar attributes.
+`panic` reaches an `extern "C"` function boundary. Stabilization of these
+attributes has [a tracking issue][attributes-tracking-issue], but most
+of the discussion about whether this was the best approach took place in two
+RFC PR threads, [#2699][rfc-2699] and [#2753][rfc-2753].
 
 The attribute approach was deemed insufficient for the following reasons:
 
@@ -417,20 +422,33 @@ The attribute approach was deemed insufficient for the following reasons:
   string is always part of its type, so we are not introducing any new elements
   to the type system.
 
+[attributes-tracking-issue]: https://github.com/rust-lang/rust/issues/58760
 [rfc-2699]: https://github.com/rust-lang/rfcs/pull/2699
 [rfc-2753]: https://github.com/rust-lang/rfcs/pull/2753
 
-## Other discussions
-<!-- TODO other discussions:
-Tickets:
-* https://github.com/rust-lang/rust/issues/58794
-* https://github.com/rust-lang/rust/issues/52652
-* https://github.com/rust-lang/rust/issues/58760
-* https://github.com/rust-lang/rust/pull/55982
+## Older discussions about unwinding through `extern "C"` boundaries
 
-Discourse:
-https://internals.rust-lang.org/t/unwinding-through-ffi-after-rust-1-33/9521?u=batmanaod
--->
+As mentioned [above][motivation], it is currently undefined behavior for
+`extern "C"` functions to unwind. As documented in [this
+issue][abort-unwind-issue], the lang team has long intended to make `panic!`
+cause the runtime to abort rather than unwind through an `extern "C"` boundary
+(which the current proposal [also specifies][extern-c-behavior]).
+
+The abort-on-unwind behavior was [stabilized in 1.24][1.24-release] and
+[reverted in 1.24.1][1.24.1-release]; the team originally planned to [stabilize
+it again][1.33-stabilization] in 1.33, but ultimately [decided not
+to][1.33-discussion]. Community discussion [on discourse][discourse-thread] was
+largely concerned with the lack of any stable language feature to permit
+unwinding across FFI boundaries, and this contributed to the decision to block
+the re-stabilization of the abort-on-unwind behavior until such a feature could
+be introduced.
+
+[abort-unwind-issue]: https://github.com/rust-lang/rust/issues/52652
+[1.24-release]: https://blog.rust-lang.org/2018/02/15/Rust-1.24.html#other-good-stuff
+[1.24.1-release]: https://blog.rust-lang.org/2018/03/01/Rust-1.24.1.html#do-not-abort-when-unwinding-through-ffi
+[1.33-stabilization]: https://github.com/rust-lang/rust/pull/55982
+[1.33-discussion]: https://github.com/rust-lang/rust/issues/58794
+[discourse-thread]: https://internals.rust-lang.org/t/unwinding-through-ffi-after-rust-1-33/9521?u=batmanaod
 
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
