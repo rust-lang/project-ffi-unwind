@@ -393,11 +393,12 @@ the new `"C unwind"` ABI.
 [nightly-attributes]: #attributes-on-nightly-rust-and-prior-rfcs
 
 Currently, nightly Rust provides attributes, `#[unwind(allowed)]` and
-`#[unwind(abort)]`, for making the behavior of `panic` crossing a `"C"` ABI
-boundary well defined. Two previous RFCs, [#2699][rfc-2699] and
-[#2753][rfc-2753], attempted to stabilize these or similar attributes.
+`#[unwind(abort)]`, that permit users to select a well-defined behavior when a
+`panic` reaches an `extern "C"` function boundary. Two previous RFCs,
+[#2699][rfc-2699] and [#2753][rfc-2753], attempted to stabilize these or
+similar attributes.
 
-The attribute approach was deemed insufficient:
+The attribute approach was deemed insufficient for the following reasons:
 
 * Currently, Rust does not support attributes on function pointers. This may
   change in the future, but until then, attributes cannot provide any way to
@@ -413,8 +414,8 @@ The attribute approach was deemed insufficient:
 * The ability of a function to unwind must be part of the type system to ensure
   that callers that cannot unwind don't invoke functions that can unwind.
   Although attributes are sometimes part of a function's type, a function's ABI
-  string is always part of its type, so we are not introducing anything new to
-  the type system.
+  string is always part of its type, so we are not introducing any new elements
+  to the type system.
 
 [rfc-2699]: https://github.com/rust-lang/rfcs/pull/2699
 [rfc-2753]: https://github.com/rust-lang/rfcs/pull/2753
