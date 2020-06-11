@@ -151,7 +151,7 @@ called non-POFs.
 
 Note that a non-POF may _become_ a POF, for instance if all `Drop` objects are
 moved out of scope, or if its only `catch_unwind` call is in a code path that
-will not be executed.
+will not be executed. The next section provides an example.
 
 [cpp-POD-definition]: https://en.cppreference.com/w/cpp/named_req/PODType
 
@@ -175,10 +175,36 @@ This RFC specifies that, regardless of the platform or the ABI string (`"C"` or
 * _undefined behavior_ if they cross non-[POFs][POF-definition]
 * _defined behavior_ when all unwound frames are POFs
 
-As an example, this means that Rust code can (indirectly, via C) invoke
-`longjmp` using the "C" ABI, and that `longjmp` can unwind or otherwise cross
-Rust [POFs][POF-definition]. If those Rust frames are not POFs, then invoking
-`longjmp` would be undefined behavior (and hence a bug).
+As an example:
+
+```rust
+fn foo<D: Drop>(c: bool, d: D) {
+  if c {
+    drop(d);
+  }
+  longjmp_if_true(c);
+}
+
+/// Calls `longjmp` if `c` is true; otherwise returns normally.
+extern "C" fn longjmp_if_true(c: bool);
+```
+
+If a `longjmp` occurs, it can safely traverse the `foo` frame, which will be a
+POF because `d` has already been dropped.
+
+Since `longjmp_if_true` function is using the `"C"` rather than the `"C
+unwind"` ABI, the optimizer may assume that it cannot unwind; on LLVM, this is
+represented by the `nounwind` attribute. On most platforms, `longjmp` is not a
+form of unwinding: the `foo` frame is simply discarded. On Windows, `longjmp`
+is implemented as a forced unwind, which is permitted to traverse `nounwind`
+frames. Since `foo` contains a `Drop` type the forced unwind will include a
+call to the frame's cleanup logic, but that logic will not produce any
+observable effect; in particular, `D::drop()` will not be called again. The
+observable behavior should therefore be the same on all platforms.
+
+Conversely, if, due to a bug, `longjmp` were called unconditionally, then this
+code would have undefined behavior on all platforms when `c` is false, because
+`foo` would not be a POF.
 
 [inside-rust-forced]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#forced-unwinding
 
