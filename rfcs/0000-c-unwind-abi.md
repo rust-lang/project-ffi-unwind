@@ -434,7 +434,7 @@ provide a well-defined behavior for this case, which will probably be either to
 let the exception pass through uncaught or to catch some or all foreign
 exceptions.
 
-We would also like to specify conditions under whch `longjmp` and
+We would also like to specify conditions under which `longjmp` and
 `pthread_exit` may safely deallocate Rust frames. This RFC specifies that
 frames deallocated in this way [must be POFs][reference-level-explanation].
 However, this condition is merely necessary rather than sufficient to ensure
