@@ -80,7 +80,6 @@ is safe as long as only [POFs][POF-definition] are deallocated.
 
 ### Do not change the ABI of functions in the `libc` crate
 
-<!-- XXX TBD -->
 This constraint is met: `libc` functions will continue to use the `"C"` ABI.
 `pthread_exit` will be treated the same across all platforms, and will be safe
 as long as only [POFs][POF-definition] are deallocated. 
