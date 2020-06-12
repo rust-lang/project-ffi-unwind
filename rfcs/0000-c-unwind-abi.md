@@ -52,8 +52,10 @@ The ["Analysis of key design goals"][analysis-of-design-goals] section analyzes
 how well the current design satisfies these constraints.
 
 * **Changing from `panic=unwind` to `panic=abort` cannot cause undefined
-  behavior:** We wish to ensure that changing from `panic=unwind` to `panic=abort` never creates undefined behavior (relate to `panic=unwind`), even if one is relying on a
-  library that triggers a panic or a foreign exception.
+  behavior:** We wish to ensure that changing from `panic=unwind` to
+  `panic=abort` never creates undefined behavior (relate to `panic=unwind`),
+  even if one is relying on a library that triggers a panic or a foreign
+  exception.
 * **Optimization with `panic=abort`:** when using `panic=abort`, we
   wish to enable as many code-size optimizations as possible. This
   means that we shouldn't have to generate unwinding tables or other
