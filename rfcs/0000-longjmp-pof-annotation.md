@@ -36,6 +36,7 @@ fn foo<D: Drop>(c: bool, d: D) {
 }
 
 /// Calls `longjmp` if `c` is true; otherwise returns normally.
+#[cancelable]
 extern "C" fn longjmp_if_true(c: bool);
 ```
 
