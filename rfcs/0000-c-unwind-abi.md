@@ -17,8 +17,8 @@ previously-undefined cases when an unwind operation reaches a Rust function
 boundary with a non-`"Rust"`, non-`"C unwind"` ABI.
 
 As part of this specification, we introduce the term ["Plain Old Frame"
-(POF)][POF-definition]. These are frames that may be safely deallocated with
-`longjmp`.
+(POF)][POF-definition]. These are frames that have no pending destructors and
+can be trivially deallocated.
 
 This RFC does not define the behavior of `catch_unwind` in a Rust frame being
 unwound by a foreign exception. This is something the [project
@@ -40,12 +40,6 @@ unwinding mechanism, the current `rustc` implementation assumes that `extern
 "C"` functions cannot unwind, which permits LLVM to optimize with the
 assumption that such unwinding constitutes undefined behavior.
 
-Additionally, there are libraries such as `rlua` that rely on `longjmp` across
-Rust frames; on Windows, `longjmp` is implemented via [forced
-unwinding][forced-unwinding]. The current `rustc` implementation makes it safe
-to `longjmp` across Rust [POFs][POF-definition] (frames without `Drop` types),
-but this is not formally specified in an RFC or by the Reference.
-
 The desire for this feature has been previously discussed on other RFCs,
 including [#2699][rfc-2699] and [#2753][rfc-2753].
 
@@ -57,11 +51,12 @@ several requirements for any cross-language unwinding design.
 The ["Analysis of key design goals"][analysis-of-design-goals] section analyzes
 how well the current design satisfies these constraints.
 
-* **Changing from panic=unwind to panic=abort cannot cause UB:** We
-  wish to ensure that choosing `panic=abort` doesn't ever create
-  undefined behavior (relate to `panic=unwind`), even if one is
-  relying on a library that triggers a panic or a foreign exception.
-* **Optimization with panic=abort:** when using `-Cpanic=abort`, we
+* **Changing from `panic=unwind` to `panic=abort` cannot cause undefined
+  behavior:** We wish to ensure that changing from `panic=unwind` to
+  `panic=abort` never creates undefined behavior (relate to `panic=unwind`),
+  even if one is relying on a library that triggers a panic or a foreign
+  exception.
+* **Optimization with `panic=abort`:** when using `panic=abort`, we
   wish to enable as many code-size optimizations as possible. This
   means that we shouldn't have to generate unwinding tables or other
   such constructs, at least in most cases.
@@ -78,19 +73,24 @@ how well the current design satisfies these constraints.
   languages) to raise exceptions that will propagate through Rust
   frames "as if" they were Rust panics (i.e., running destrutors or,
   in the case of `unwind=abort`, aborting the program).
-* **Enable error handling with `longjmp`:** As mentioned above, some existing
-  Rust libraries use `longjmp`. Despite the fact that `longjmp` on Windows is
-  [technically a form of unwinding][forced-unwinding], using `longjmp` across
-  Rust [POFs][POF-definition] [is safe][longjmp-pr] with the current
-  implementation of `rustc`, and we want to specify that this will remain safe.
+* **Enable error handling with `longjmp`:**
+  As mentioned above, some existing Rust libraries rely on the ability to
+  `longjmp` across Rust frames to interoperate with Ruby, Lua, and other C
+  APIs. The behavior of `longjmp` traversing Rust frames is not specified or
+  guaranteed to be safe; in the current implementation of `rustc`,
+  however, it [is safe][longjmp-pr]. On Windows, `longjmp` is implemented as a
+  form of unwinding called ["forced unwinding"][forced-unwinding], so any
+  specification of the behavior of forced unwinding across FFI boundaries
+  should be forward-compatible with a [future RFC][unresolved-questions] that
+  will provide a well-defined way to interoperate with longjmp-based APIs.
 * **Do not change the ABI of functions in the `libc` crate:** Some `libc`
   functions may invoke `pthread_exit`, which uses [a form of
   unwinding][forced-unwinding] in the GNU libc implementation. Such functions
   must be safe to use with the existing `"C"` ABI, because changing the types
   of these functions would be a breaking change. 
 
-  [inside-rust-requirements]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#requirements-for-any-cross-language-unwinding-specification
-  [longjmp-pr]: https://github.com/rust-lang/rust/pull/48572
+[inside-rust-requirements]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#requirements-for-any-cross-language-unwinding-specification
+[longjmp-pr]: https://github.com/rust-lang/rust/pull/48572
 
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
@@ -170,41 +170,10 @@ types). In other words, a forced unwind operation on one platform will simply
 deallocate Rust frames without true unwinding on other platforms.
 
 This RFC specifies that, regardless of the platform or the ABI string (`"C"` or
-`"C unwind"`), any platform features that may rely on forced unwinding are:
-
-* _undefined behavior_ if they cross non-[POFs][POF-definition]
-* _defined behavior_ when all unwound frames are POFs
-
-As an example:
-
-```rust
-fn foo<D: Drop>(c: bool, d: D) {
-  if c {
-    drop(d);
-  }
-  longjmp_if_true(c);
-}
-
-/// Calls `longjmp` if `c` is true; otherwise returns normally.
-extern "C" fn longjmp_if_true(c: bool);
-```
-
-If a `longjmp` occurs, it can safely traverse the `foo` frame, which will be a
-POF because `d` has already been dropped.
-
-Since `longjmp_if_true` function is using the `"C"` rather than the `"C
-unwind"` ABI, the optimizer may assume that it cannot unwind; on LLVM, this is
-represented by the `nounwind` attribute. On most platforms, `longjmp` is not a
-form of unwinding: the `foo` frame is simply discarded. On Windows, `longjmp`
-is implemented as a forced unwind, which is permitted to traverse `nounwind`
-frames. Since `foo` contains a `Drop` type the forced unwind will include a
-call to the frame's cleanup logic, but that logic will not produce any
-observable effect; in particular, `D::drop()` will not be called again. The
-observable behavior should therefore be the same on all platforms.
-
-Conversely, if, due to a bug, `longjmp` were called unconditionally, then this
-code would have undefined behavior on all platforms when `c` is false, because
-`foo` would not be a POF.
+`"C unwind"`), any platform features that may rely on forced unwinding are
+undefined behavior if they cross non-[POFs][POF-definition]. For now, however,
+we do not specify the conditions required to use forced unwinding safely; we
+will specify this in [a future RFC][unresolved-questions].
 
 [inside-rust-forced]: https://blog.rust-lang.org/inside-rust/2020/02/27/ffi-unwind-design-meeting.html#forced-unwinding
 
@@ -216,13 +185,9 @@ boundary, either from a `panic!` "escaping" from a Rust function defined with
 `extern "C"` or by entering Rust from another language via an entrypoint
 declared with `extern "C"`, caused undefined behavior.
 
-This RFC retains most of that undefined behavior, with two exceptions:
-
-* With the `panic=unwind` runtime, `panic!` will cause an `abort` if it would
-  otherwise "escape" from a function defined with `extern "C"`.
-* Forced unwinding is safe with `extern "C"` as long as only
-* [POFs][POF-definition] are unwound. This is to keep behavior of
-  `pthread_exit` and `longjmp` consistent across platforms.
+This RFC retains most of that undefined behavior, with one exception: with the
+`panic=unwind` runtime, `panic!` will cause an `abort` if it would otherwise
+"escape" from a function defined with `extern "C"`.
 
 ## Interaction with `panic=abort`
 
@@ -230,15 +195,10 @@ If a non-forced foreign unwind would enter a Rust frame via an `extern "C
 unwind"` ABI boundary, but the Rust code is compiled with `panic=abort`, the
 unwind will be caught and the process aborted.
 
-There are some types of unwinding that are not guaranteed to cause the program
-to abort with `panic=abort`, though:
-
-* Forced unwinding: Rust provides no mechanism to catch this type of unwinding.
-  This is safe with either the `"C"` ABI or the new `"C unwind"` ABI, as long
-  as only [POFs][POF-definition] are unwound.
-* Unwinding from another language into Rust if the entrypoint to that language
-  is declared with `extern "C"` (contrary to the guidelines above): this is
-  always undefined behavior.
+With the exception of the above case, however, unwinding from another language
+into Rust through an FFI entrypoint declared with `extern "C"` is always
+undefined behavior, and is not guaranteed to cause the program to abort under
+`panic=abort`.
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
@@ -255,13 +215,15 @@ behavior. `"C"`-like ABIs are `"C"` itself but also related ABIs such as
 | `panic=abort`  | `"C unwind"` | `panic!` aborts                       | abort                   |
 | `panic=abort`  | `"C"`-like   | `panic!` aborts (no unwinding occurs) | UB                      |
 
-Regardless of the panic runtime, ABI, or platform, the interaction of Rust
-frames with C functions that deallocate frames (i.e. functions that may use
-forced unwinding on specific platforms) is specified as follows:
+The interaction of Rust frames with C functions that deallocate frames (i.e.
+functions that may use forced unwinding on specific platforms) is independent
+of the panic runtime, ABI, or platform.
 
-* **When deallocating Rust [POFs][POF-definition]:** frames are safely
-  deallocated; no undefined behavior
-* **When deallocating Rust non-POFs:** undefined behavior
+* **When deallocating Rust non-POFs:** this is explicitly undefined behavior.
+* **When deallocating Rust [POFs][POF-definition]:** for now, this is not
+  specified, and must be considered undefined behavior. However, we do plan to
+  specify a safe way to deallocate POFs with `longjmp` or `pthread_exit` in [a
+  future RFC][unresolved-questions].
 
 No subtype relationship is defined between functions or function pointers using
 different ABIs. This RFC also does not define coercions between `"C"` and
@@ -283,7 +245,7 @@ This design imposes some burden on existing codebases (mentioned
 [above][motivation]) to change their `extern` annotations to use the new ABI.
 
 Having separate ABIs for `"C"` and `"C unwind"` may make interface design more
-difficult, especially since this RFC [postpones][future-possibilities]
+difficult, especially since this RFC [postpones][unresolved-questions]
 introducing coercions between function types using different ABIs.
 
 A single ABI that "just works" with C++ (or any other language that may throw
@@ -348,7 +310,7 @@ Our reasons for preferring the current proposal are:
 This section revisits the key design goals to assess how well they
 are met by the proposed design.
 
-### Changing from panic=unwind to panic=abort cannot cause UB
+### Changing from `panic=unwind` to `panic=abort` cannot cause UB
 
 This constraint is met:
 
@@ -389,14 +351,11 @@ future work.
 
 ### Enable error handling with `longjmp`
 
-This constraint is met: `longjmp` is treated the same across all platforms, and
-is safe as long as only [POFs][POF-definition] are deallocated.
+This constraint has been [deferred][unresolved-questions].
 
 ### Do not change the ABI of functions in the `libc` crate
 
-This constraint is met: `libc` functions will continue to use the `"C"` ABI.
-`pthread_exit` will be treated the same across all platforms, and will be safe
-as long as only [POFs][POF-definition] are deallocated. 
+This constraint has been [deferred][unresolved-questions].
 
 # Prior art
 [prior-art]: #prior-art
@@ -485,9 +444,15 @@ provide a well-defined behavior for this case, which will probably be either to
 let the exception pass through uncaught or to catch some or all foreign
 exceptions.
 
+We would also like to specify conditions under which `longjmp` and
+`pthread_exit` may safely deallocate Rust frames. This RFC specifies that
+frames deallocated in this way [must be POFs][reference-level-explanation].
+However, this condition is merely necessary rather than sufficient to ensure
+well-defined behavior.
+
 Within the context of this RFC and in discussions among members of the
 [FFI-unwind project group][project-group], this class of formally-undefined
-behavior which we plan to define at later date is referred to as "TBD
+behavior which we plan to define in future RFCs is referred to as "TBD
 behavior".
 
 # Future possibilities
