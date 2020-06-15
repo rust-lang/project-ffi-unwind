@@ -6,7 +6,7 @@
 
  [project-group]: https://github.com/rust-lang/project-ffi-unwind
 
- <!-- XXX for now, content is copied from prior drafts of the "C unwind" RFC. -->
+ <!-- TODO for now, content is copied from prior drafts of the "C unwind" RFC. -->
 
 # Motivation
 [motivation]: #motivation
@@ -56,6 +56,10 @@ observable behavior should therefore be the same on all platforms.
 Conversely, if, due to a bug, `longjmp` were called unconditionally, then this
 code would have undefined behavior on all platforms when `c` is false, because
 `foo` would not be a POF.
+
+<!-- TODO the above only talks about UB, but we want warnings to be more
+conservative: the compiler should warn in any scenario where a frame is not
+guaranteed to be a POF at the time it calls a "cancelable" function. -->
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
