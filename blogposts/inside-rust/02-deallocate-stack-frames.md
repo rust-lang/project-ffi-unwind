@@ -120,13 +120,3 @@ please join us in [zulip][proj-group-zulip]!
 [c-unwind-rfc]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md
 [c-unwind-pr]: https://github.com/rust-lang/rust/pull/76570
 [forced-unwinding]: XXX
-
-<!--
-* POFs - necessary but not sufficient
-  * semantic tracatbility - `longjmp` reliance is visible for all functions
-    involved
-  * optimization potential when cleanup is "guaranteed"
-  * possibilities for compiler warnings & errors
-* annotation - need to bikeshed name
-
--->
