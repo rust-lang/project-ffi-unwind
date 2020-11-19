@@ -28,10 +28,6 @@ This blog post will explain the problem space. If you're interested in helping
 specify this behavior, please come join us in [our Zulip
 stream][proj-group-zulip]!
 
-<a name="longjmp-unwind">[1]</a>: As mentioned in the RFC, on Windows,
-`longjmp` actually *is* an unwinding operation. On other platforms, however,
-`longjmp` is unrelated to unwinding.
-
 ## `longjmp` and its ilk
 
 Above, I mentioned `longjmp` and "similar functions". Within the context of the
@@ -113,6 +109,12 @@ finalized, we do not yet have a name for the annotation.
 
 If you would like to help us create this specification and write an RFC for it,
 please join us in [zulip][proj-group-zulip]!
+
+#### Footnotes
+
+<a name="longjmp-unwind">[1]</a>: As mentioned in the RFC, on Windows,
+`longjmp` actually *is* an unwinding operation. On other platforms, however,
+`longjmp` is unrelated to unwinding.
 
 [proj-group-gh]: https://github.com/rust-lang/project-ffi-unwind
 [proj-group-rfc]: https://github.com/rust-lang/rfcs/blob/master/text/2797-project-ffi-unwind.md
