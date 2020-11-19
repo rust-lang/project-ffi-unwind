@@ -28,9 +28,9 @@ This blog post will explain the problem space. If you're interested in helping
 specify this behavior, please come join us in [our Zulip
 stream][proj-group-zulip]!
 
-<a name="longjmp-unwind">1</a> As mentioned in the RFC, on Windows, `longjmp`
-actually *is* an unwinding operation. On other platforms, however, `longjmp` is
-unrelated to unwinding.
+<a name="longjmp-unwind">[1]</a>: As mentioned in the RFC, on Windows,
+`longjmp` actually *is* an unwinding operation. On other platforms, however,
+`longjmp` is unrelated to unwinding.
 
 ## `longjmp` and its ilk
 
