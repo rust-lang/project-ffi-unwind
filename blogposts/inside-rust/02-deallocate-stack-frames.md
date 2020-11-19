@@ -9,28 +9,28 @@ of undefined behavior in the `"C"` ABI, we are ready to establish new goals for
 the group.
 
 Our most important task, of course, is to implement the newly-specified
-behavior. This work is underway and can be followed [here][c-unwind-pr].
-<!-- TODO: Katie: would you like a personal call-out here? -->
+behavior. This work has been undertaken by Katelyn Martin and can be followed
+[here][c-unwind-pr].
 
 The requirements of our current charter, and the [RFC creating the
 group][proj-group-rfc], are effectively fulfilled by the specification of `"C
 unwind"`, so one option is to simply wind down the project group. While
 drafting the `"C unwind"` RFC, however, we discovered that the existing
 guarantees around `longjmp` and similar functions could be improved. Although
-this is not strictly related to unwinding[1], they are closesly related: they are
-both "non-local" control-flow mechanisms that prevent functions from
-returning normally. Because one of the goals of the Rust project is for Rust to
-interoperate with existing C-like languages, and these control-flow mechanisms
-are widely used in practice, we believe that Rust must have some level of
-support for them.
+this is not strictly related to unwinding<sup>[1](#longjmp-unwind)</sup>, they
+are closesly related: they are both "non-local" control-flow mechanisms that
+prevent functions from returning normally. Because one of the goals of the Rust
+project is for Rust to interoperate with existing C-like languages, and these
+control-flow mechanisms are widely used in practice, we believe that Rust must
+have some level of support for them.
 
 This blog post will explain the problem space. If you're interested in helping
 specify this behavior, please come join us in [our Zulip
 stream][proj-group-zulip]!
 
-<!-- XXX make this a real footnote somehow? Also, clean up this explanation... -->
-[1] As mentioned in the RFC, on Windows, `longjmp` actually *is* an unwinding
-operation. On other platforms, however, `longjmp` is unrelated to unwinding.
+<a name="longjmp-unwind">1</a> As mentioned in the RFC, on Windows, `longjmp`
+actually *is* an unwinding operation. On other platforms, however, `longjmp` is
+unrelated to unwinding.
 
 ## `longjmp` and its ilk
 
