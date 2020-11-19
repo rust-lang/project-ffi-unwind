@@ -112,7 +112,7 @@ please join us in [zulip][proj-group-zulip]!
 
 #### Footnotes
 
-<a name="longjmp-unwind">[1]</a>: As mentioned in the RFC, on Windows,
+<a name="longjmp-unwind">1</a>: As mentioned in the RFC, on Windows,
 `longjmp` actually *is* an unwinding operation. On other platforms, however,
 `longjmp` is unrelated to unwinding.
 
@@ -121,4 +121,4 @@ please join us in [zulip][proj-group-zulip]!
 [proj-group-zulip]: https://rust-lang.zulipchat.com/#narrow/stream/210922-project-ffi-unwind/topic/welcome.2C.20redux/near/216807277
 [c-unwind-rfc]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md
 [c-unwind-pr]: https://github.com/rust-lang/rust/pull/76570
-[forced-unwinding]: XXX
+[forced-unwinding]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md#forced-unwinding
