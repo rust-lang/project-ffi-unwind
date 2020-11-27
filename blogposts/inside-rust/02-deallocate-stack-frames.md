@@ -69,8 +69,10 @@ In addition, we would like to adhere to several design principles:
 ## POFs and stack-deallocating functions
 
 The `"C unwind"` RFC introduced a new concept designed to help us deal with
-force-unwinding or stack-deallocating functions: the POF, or "Plain Old Frame".
-<!-- TODO: link to section, short explanation here -->
+force-unwinding or stack-deallocating functions: the [POF, or "Plain Old
+Frame"][POF-definition]. These are frames that can be trivially deallocated,
+i.e., they do no "cleanup" (such as running `Drop` destructors) before
+returning.
 
 From the definition, it should be clear that it is dangerous to call a
 stack-deallocating function in a context that could destroy a non-POF stack
@@ -94,12 +96,11 @@ advantages:
 ## Annotating POFs
 
 Our current plan is to introduce a new annotation for frames that are intended
-to be safe to deallocate. These functions, of course, must be POFs. The
+to be safe to cancel. These functions, of course, must be POFs. The
 annotation would be "transitive", just like `async`: functions without this
 annotation either must not invoke any annotated functions or must guarantee
 that they will cause the stack-deallocation to terminate (for instance, a
 non-POF, non-annotated function may call `setjmp`).
-<!-- TODO improve explanation -->
 
 ### Open questions
 
@@ -207,3 +208,4 @@ please join us in [zulip][proj-group-zulip]!
 [c-unwind-rfc]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md
 [c-unwind-pr]: https://github.com/rust-lang/rust/pull/76570
 [forced-unwinding]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md#forced-unwinding
+[POF-definition]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md#plain-old-frames
