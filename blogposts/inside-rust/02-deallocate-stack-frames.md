@@ -63,7 +63,8 @@ In addition, we would like to adhere to several design principles:
   Optimizations, however, *can* be target-platform-specific.
 * There should be no difference in the specified behavior of frame-deallocation
   performed by `longjmp` versus that performed by `pthread_cancel`.
-* We will only permit canceling POFs.
+* We will only permit canceling POFs ("Plain Old Frames", explained in the next
+  section).
 
 ## POFs and stack-deallocating functions
 
@@ -93,17 +94,100 @@ advantages:
 ## Annotating POFs
 
 Our current plan is to introduce a new annotation for frames that are intended
-to be safe to deallocate. These functions, of course, must be POFs, and they
-also cannot invoke any functions without this annotation. This makes
-stack-deallocation "transitive", just like `async`: functions without this
+to be safe to deallocate. These functions, of course, must be POFs. The
+annotation would be "transitive", just like `async`: functions without this
 annotation either must not invoke any annotated functions or must guarantee
 that they will cause the stack-deallocation to terminate (for instance, a
 non-POF, non-annotated function may call `setjmp`).
 <!-- TODO improve explanation -->
 
+### Open questions
+
 The name of the annotation should be based on the terminology used to refer to
 functions that are safe to deallocate. Because this terminology is not
 finalized, we do not yet have a name for the annotation.
+
+It is also not yet clear whether annotated functions should be able to invoke
+any functions without this annotation. As long as the function call does not
+return a new `Drop` resource (making the annotated function no longer a POF),
+it may be safe, as long as we guarantee that the annotated function cannot be
+canceled while the un-annotated function is still on the stack; i.e.,
+cancelation must happen during an active call to an annotated cancelable
+function.
+
+Most importantly, we do not have a plan for how to indicate that a
+non-annotated function can safely call an annotated function. The example of
+using `setjmp` to ensure that a `longjmp` will not discard a stack frame is
+non-trivial:
+
+* `setjmp` is not a function but a C macro. There is no way to call it directly
+  in Rust.
+* `setjmp` does not prevent arbitrary `longjmp`s from crossing over a frame,
+  the way C++'s `catch` can catch any exception. Instead, `setjmp` creates an
+  object of type `jmp_buf`, which must be passed to `longjmp`; this causes the
+  jump to stop at the corresponding `setjmp` call.
+
+And, of course, `setjmp`/`longjmp` is not the only example of such a mechanism!
+Thus, there is probably no way for the compiler to guarantee that this is safe,
+and it's unclear what heuristics could be applied to make it as safe as
+possible.
+
+### Examples
+
+Let us use `#[pof-longjmp]` as a placeholder for the annotation indicating a
+function that can be safely deallocated, and let us assume that the following
+function is a wrapper around `longjmp`:
+
+```rust
+extern "C" {
+    #[pof-longjmp]
+    fn longjmp(CJmpBuf) -> !;
+}
+```
+
+The compiler would not allow this:
+
+```rust
+fn has_drop(jmp_buf: CJmpBuf) {
+    let s = "string data".to_owned();
+    unsafe { longjmp(jmp_buf); }
+    println!("{}", s);
+}
+```
+
+Here, `s` implements `Drop`, so `has_drop` is not a POF. Since `longjmp` is
+annotated `#[pof-longjmp]`, the un-annotated function `has_drop` can't call it
+(even in an `unsafe` block). If, however, `has_drop` is annotated:
+
+```rust
+#[pof-longjmp]
+fn has_drop(jmp_buf: CJmpBuf) {
+    let s = "string data".to_owned();
+    unsafe { longjmp(jmp_buf); }
+    println!("{}", s);
+}
+```
+
+...there is a different error: `#[pof-longjmp]` can only be applied to POFs,
+and since `s` implements `Drop`, `has_drop` is not a POF.
+
+An example of a permissible `longjmp` call would be:
+
+```rust
+#[pof-longjmp]
+fn no_drop(jmp_buf: CJmpBuf) {
+    let s = "string data";
+    unsafe { longjmp(jmp_buf); }
+    println!("{}", s);
+}
+```
+
+## Difference from the "never" type
+
+<!-- TODO
+cancelation is more restrictive: an infinite loop is one possibility for
+`-> !`. This cannot cause a resource leak, so it is safe for non-POFs.
+-->
 
 ## Join us!
 
