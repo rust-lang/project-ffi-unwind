@@ -1,7 +1,7 @@
 # Charter
 
-To extend the language to support control-flow constructs that cross between
-language boundaries without causing undefined behavior.
+To extend the language to avoid undefined behavior when using control-flow
+constructs that cross between language boundaries.
 
 Questions:
 
