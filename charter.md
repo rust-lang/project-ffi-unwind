@@ -1,7 +1,6 @@
 # Charter
 
-To extend the language to support unwinding that crosses FFI
-boundaries.
+To extend the language to support control-flow constructs that cross between language boundaries without causing undefined behavior.
 
 Questions:
 
