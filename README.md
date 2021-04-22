@@ -1,7 +1,8 @@
 # Project "ffi-unwind"
 
-A [working-group project][shepherds-blog] to extend the Rust language to
-support unwinding that crosses FFI boundaries.
+A [working-group project][shepherds-blog] to extend the language to avoid
+undefined behavior when using control-flow constructs that cross between
+language boundaries.
 
 - Shepherds:
   - [acfoltzer (Adam)](https://github.com/acfoltzer)
