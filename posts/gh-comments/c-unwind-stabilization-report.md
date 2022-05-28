@@ -157,7 +157,7 @@ runtime if it has both of the following characteristics:
 * It contains a call to an `-unwind` foreign function or function pointer
 * It was compiled with `panic=unwind`
 
-[PR #97235][ppr-fix-mixed-panic] implements this prohibition.
+[PR #97235][pr-fix-mixed-panic] implements this prohibition.
 
 ### Unresolved questions
 
@@ -195,7 +195,7 @@ Full example projects mixing Rust code with non-Rust code are:
 
 ### Open PR
 
-[PR #97235][ppr-fix-mixed-panic] introduces tests for the [mixed-panic-modes
+[PR #97235][pr-fix-mixed-panic] introduces tests for the [mixed-panic-modes
 issue](#mixing-panic-modes).
 
 <!-- requirements, from the stabilization guide:
