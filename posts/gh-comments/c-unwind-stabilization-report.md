@@ -40,7 +40,7 @@ interaction with unwinding will still remain mostly undefined, except that a
 Rust `panic` when `panic=unwind` will now cause the process to abort if it
 would otherwise escape from a non-Rust FFI boundary without `-unwind`.
 
-## examples
+## Examples
 
 ### Rust `panic` with `"C-unwind"`
 
