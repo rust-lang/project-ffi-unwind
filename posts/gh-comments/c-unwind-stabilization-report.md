@@ -121,7 +121,73 @@ would `panic`, and the behavior of a `panic` crossing a non-Rust ABI boundary
 was undefined. With the `c_unwind` feature, the runtime is guaranteed to
 (safely) abort the process if this occurs.
 
+## Changes since the RFC
+
+The implementation is as specified in the RFC, but there have been a few
+considerations not directly addressed in the text of the RFC.
+
+### Additional ABI strings
+
+The RFC, as written, only introduces the `"C-unwind"` ABI string; the others
+[listed above](#summary) were introduced later. Their semantics are exactly as
+one would expect: they are identical to their non-`unwind` counterparts except
+when an unwind reaches their ABI boundary, in which case the behavior is the
+same as the RFC specifies for `"C-unwind"`.
+
+Similarly, the new rules for `extern "C"` regarding unwinding are now applied
+to all non-`unwind` ABI strings other than `"Rust"`.
+
+### Double unwinding
+
+[PR #92911][pr-double-unwind] ensures that the following scenarios both safely
+abort the program:
+
+* multiple foreign (e.g. C++) exceptions
+* a `panic` occurring while a foreign exception is unwinding the stack, or
+  vice-versa
+
+### Mixing panic modes
+
+This is currently an [open issue][issue-mixed-panic] regarding the behavior
+when a foreign exception enters the Rust runtime via a crate compiled with
+`panic=unwind`, but escapes into a crate compiled with `panic=abort`. We have
+decided to prohibit linking any crate from being linked with the `panic=abort`
+runtime if it has both of the following characteristics:
+
+* It contains a call to an `-unwind` foreign function or function pointer
+* It was compiled with `panic=unwind`
+
+[PR #97235][ppr-fix-mixed-panic] implements this prohibition.
+
 ## Tests
+
+### Codegen
+
+There is [a folder of codegen tests][codegen-unwind] for the new ABI strings.
+
+Additional codegen tests are:
+
+* [panic=abort][codegen-extra-1]
+* [extern-exports][codegen-extra-2]
+* [extern-imports][codegen-extra-3]
+
+### `"C"` guaranteed to abort on panic
+
+[This test][abort-on-panic] verifies that an `extern "C"` function that
+`panic!`s will always abort if the panic would otherwise "escape".
+
+### Full examples
+
+Full example projects mixing Rust code with non-Rust code are:
+
+* [a `panic` escaping into C][panic-into-c]
+* [a C++ exception escapig into Rust][cpp-throw-into-rust]
+* [double unwinding][double-unwind]
+
+### Open PR
+
+[PR #97235][ppr-fix-mixed-panic] introduces tests for the [mixed-panic-modes
+issue](#mixing-panic-modes).
 
 <!-- requirements, from the stabilization guide:
 + A summary, showing examples (e.g. code snippets) what is enabled by this feature.
@@ -134,3 +200,15 @@ was undefined. With the `c_unwind` feature, the runtime is guaranteed to
 <!-- links -->
 [rfc-text]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md
 [rfc-table]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md#abi-boundaries-and-unforced-unwinding
+[pr-fix-mixed-panic]: https://github.com/rust-lang/rust/pull/97235/files
+[pr-double-unwind]: https://github.com/rust-lang/rust/pull/92911
+[issue-mixed-panic]: https://github.com/rust-lang/rust/issues/96926
+[pr-abort-in-personality]: https://github.com/rust-lang/rust/pull/86801
+[codegen-unwind]: https://github.com/rust-lang/rust/tree/master/src/test/codegen/unwind-abis
+[codegen-extra-1]: https://github.com/rust-lang/rust/blob/master/src/test/codegen/unwind-and-panic-abort.rs
+[codegen-extra-2]: https://github.com/rust-lang/rust/blob/master/src/test/codegen/unwind-extern-exports.rs
+[codegen-extra-3]: https://github.com/rust-lang/rust/blob/master/src/test/codegen/unwind-extern-imports.rs
+[panic-into-c]: https://github.com/rust-lang/rust/tree/master/src/test/run-make-fulldeps/c-unwind-abi-catch-lib-panic
+[cpp-throw-into-rust]: https://github.com/rust-lang/rust/tree/master/src/test/run-make-fulldeps/foreign-exceptions
+[double-unwind]: https://github.com/rust-lang/rust/tree/master/src/test/run-make-fulldeps/foreign-double-unwind
+[abort-on-panic]: https://github.com/rust-lang/rust/blob/master/src/test/ui/panics/abort-on-panic.rs
