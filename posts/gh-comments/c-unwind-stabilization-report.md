@@ -159,6 +159,15 @@ runtime if it has both of the following characteristics:
 
 [PR #97235][ppr-fix-mixed-panic] implements this prohibition.
 
+### Unresolved questions
+
+None of the [unresolved questions][rfc-unresolved] have been resolved.
+Specifically, the following are still considered undefined behavior:
+
+* Letting a foreign exception unwind a Rust frame that calls `catch_unwind`
+* Calling `pthread_exit` or `longjmp` in such a way that Rust frames are
+  deallocated
+
 ## Tests
 
 ### Codegen
@@ -191,15 +200,16 @@ issue](#mixing-panic-modes).
 
 <!-- requirements, from the stabilization guide:
 + A summary, showing examples (e.g. code snippets) what is enabled by this feature.
-- Links to test cases in our test suite regarding this feature and describe the feature's behavior on encountering edge cases.
++ Links to test cases in our test suite regarding this feature and describe the feature's behavior on encountering edge cases.
 - Links to the documentations (the PRs we have made in the previous steps).
-- Any other relevant information.
-- The resolutions of any unresolved questions if the stabilization is for an RFC.
++ Any other relevant information.
++ The resolutions of any unresolved questions if the stabilization is for an RFC.
 -->
 
 <!-- links -->
 [rfc-text]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md
 [rfc-table]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md#abi-boundaries-and-unforced-unwinding
+[rfc-unresolved]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md#unresolved-questions
 [pr-fix-mixed-panic]: https://github.com/rust-lang/rust/pull/97235/files
 [pr-double-unwind]: https://github.com/rust-lang/rust/pull/92911
 [issue-mixed-panic]: https://github.com/rust-lang/rust/issues/96926
