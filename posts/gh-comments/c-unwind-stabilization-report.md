@@ -51,7 +51,7 @@ extern "C-unwind" fn example() {
 }
 ```
 
-This function now permitted to unwind C++ stack frames.
+This function is now permitted to unwind C++ stack frames.
 
 ```
 [Rust function with `catch_unwind`, which stops the unwinding]
@@ -115,11 +115,11 @@ extern "C" fn assert_nonzero(input: u32) {
 }
 ```
 
-Previously, if `assert_nonzero` were called with the argument `0` with a
-`panic=unwind` runtime, the behavior would be undefined, because `assert!`
-would `panic`, and the behavior of a `panic` crossing a non-Rust ABI boundary
-was undefined. With the `c_unwind` feature, the runtime is guaranteed to
-(safely) abort the process if this occurs.
+Previously, if `assert_nonzero` were linked with the `panic=unwind` runtime and
+called with the argument `0`, the behavior would be undefined, because
+`assert!` would `panic`, and the behavior of a `panic` crossing a non-Rust ABI
+boundary was undefined. With the `c_unwind` feature, the runtime is guaranteed
+to (safely) abort the process if this occurs.
 
 ## Changes since the RFC
 
@@ -198,13 +198,12 @@ Full example projects mixing Rust code with non-Rust code are:
 [PR #97235][pr-fix-mixed-panic] introduces tests for the [mixed-panic-modes
 issue](#mixing-panic-modes).
 
-<!-- requirements, from the stabilization guide:
-+ A summary, showing examples (e.g. code snippets) what is enabled by this feature.
-+ Links to test cases in our test suite regarding this feature and describe the feature's behavior on encountering edge cases.
-- Links to the documentations (the PRs we have made in the previous steps).
-+ Any other relevant information.
-+ The resolutions of any unresolved questions if the stabilization is for an RFC.
--->
+## Documentation
+
+Documentation PRs for
+
+* [the Rustonomicon][nomicon]
+* [the Reference][reference]
 
 <!-- links -->
 [rfc-text]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md
@@ -222,3 +221,5 @@ issue](#mixing-panic-modes).
 [cpp-throw-into-rust]: https://github.com/rust-lang/rust/tree/master/src/test/run-make-fulldeps/foreign-exceptions
 [double-unwind]: https://github.com/rust-lang/rust/tree/master/src/test/run-make-fulldeps/foreign-double-unwind
 [abort-on-panic]: https://github.com/rust-lang/rust/blob/master/src/test/ui/panics/abort-on-panic.rs
+[nomicon]: https://github.com/rust-lang/nomicon/pull/365
+[reference]: XXX no PR yet
