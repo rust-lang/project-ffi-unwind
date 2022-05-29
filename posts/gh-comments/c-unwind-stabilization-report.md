@@ -151,11 +151,14 @@ abort the program:
 This is currently an [open issue][issue-mixed-panic] regarding the behavior
 when a foreign exception enters the Rust runtime via a crate compiled with
 `panic=unwind`, but escapes into a crate compiled with `panic=abort`. We have
-decided to prohibit linking any crate from being linked with the `panic=abort`
-runtime if it has both of the following characteristics:
+decided to [prohibit linking][pr-fix-mixed-panic] any crate from being linked
+with the `panic=abort` runtime if it has both of the following characteristics:
 
 * It contains a call to an `-unwind` foreign function or function pointer
 * It was compiled with `panic=unwind`
+
+Note: `cargo` will automatically unify all crates to use the same `panic`
+runtime, so this prohibition does not apply to projects compiled with `cargo`.
 
 [PR #97235][pr-fix-mixed-panic] implements this prohibition.
 
@@ -200,10 +203,18 @@ issue](#mixing-panic-modes).
 
 ## Documentation
 
-Documentation PRs for
+Here are documentation PRs for
 
-* [the Rustonomicon][nomicon]
 * [the Reference][reference]
+* [the Rustonomicon][nomicon]
+
+I have not yet suggested any changes for the Book, but it may be appropriate to
+add something like this:
+
+> Usually you want the non-unwind versions of ABI strings, but if you are
+> messing around with FFI and unwinding, refer to the Nomicon.
+
+I don't think Rust by Example needs to be updated.
 
 <!-- links -->
 [rfc-text]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md
