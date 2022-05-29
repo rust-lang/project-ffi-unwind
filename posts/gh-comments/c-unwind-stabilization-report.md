@@ -233,4 +233,4 @@ I don't think Rust by Example needs to be updated.
 [double-unwind]: https://github.com/rust-lang/rust/tree/master/src/test/run-make-fulldeps/foreign-double-unwind
 [abort-on-panic]: https://github.com/rust-lang/rust/blob/master/src/test/ui/panics/abort-on-panic.rs
 [nomicon]: https://github.com/rust-lang/nomicon/pull/365
-[reference]: XXX no PR yet
+[reference]: https://github.com/rust-lang/reference/pull/1226
