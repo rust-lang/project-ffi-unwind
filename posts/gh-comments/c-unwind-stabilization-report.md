@@ -1,6 +1,5 @@
 # Request for Stabilization
 
-<!-- Note: waiting on https://github.com/rust-lang/rust/pull/97235 -->
 <!-- Note: need to finish this documentation: https://github.com/BatmanAoD/reference/tree/c-unwind-documentation -->
 
 This is a request for stabilization of the `c_unwind` feature,
