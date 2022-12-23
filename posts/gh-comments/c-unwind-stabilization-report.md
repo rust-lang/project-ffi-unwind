@@ -1,13 +1,13 @@
 # Request for Stabilization
 
-<!-- Note: need to finish this documentation: https://github.com/BatmanAoD/reference/tree/c-unwind-documentation -->
-
-This is a request for stabilization of the `c_unwind` feature,
-[RFC-2945][rfc-text].
+This is a request for *partial* stabilization of the `c_unwind` feature,
+[RFC-2945][rfc-text]. The newly-introduced ABIs will be stabilized, but the
+changes in behavior to existing ABIs (such as `extern "C"`) will remain behind
+the `c_unwind` feature gate.
 
 ## Summary
 
-This feature enables ABI strings ending in `-unwind`; specifically:
+This stabilization enables ABI strings ending in `-unwind`; specifically:
 
 - `"C-unwind"`
 - `"cdecl-unwind"`
@@ -32,12 +32,11 @@ without terminating the process (as long as the exception is caught in the same
 language from which it originated); for `panic=abort`, this will typically
 abort the process immediately.
 
-Conversely, the corresponding ABIs without `-unwind` will no longer permit
-unwinding across their ABI boundary. This has previously been undefined
-behavior but was permitted in practice (albeit with soundness holes). Their
-interaction with unwinding will still remain mostly undefined, except that a
-Rust `panic` when `panic=unwind` will now cause the process to abort if it
-would otherwise escape from a non-Rust FFI boundary without `-unwind`.
+For initial stabilization, *no change* will be made to the existing ABIs. The
+existing ABIs have soundness holes, though, which will be fixed when the
+behavior described in the RFC is stabilized. Thus, we would like to stabilize
+the remainder of the `c_unwind` feature soon. We are splitting the
+stabilization into separate releases to give users time to adopt the new ABIs.
 
 ## Examples
 
@@ -105,21 +104,6 @@ exception thrown by `may_throw`.
 If `may_throw` does throw an exception, `b` will be dropped. Otherwise, `5`
 will be printed.
 
-### `panic` can be stopped at an ABI boundary
-
-```rust
-#[no_mangle]
-extern "C" fn assert_nonzero(input: u32) {
-    assert!(input != 0)
-}
-```
-
-Previously, if `assert_nonzero` were linked with the `panic=unwind` runtime and
-called with the argument `0`, the behavior would be undefined, because
-`assert!` would `panic`, and the behavior of a `panic` crossing a non-Rust ABI
-boundary was undefined. With the `c_unwind` feature, the runtime is guaranteed
-to (safely) abort the process if this occurs.
-
 ## Changes since the RFC
 
 The implementation is as specified in the RFC, but there have been a few
@@ -138,7 +122,7 @@ to all non-`unwind` ABI strings other than `"Rust"`.
 
 ### Double unwinding
 
-[PR #92911][pr-double-unwind] ensures that the following scenarios both safely
+[PR #92911][pr-double-unwind] ensured that the following scenarios both safely
 abort the program:
 
 * multiple foreign (e.g. C++) exceptions
@@ -147,11 +131,11 @@ abort the program:
 
 ### Mixing panic modes
 
-This is currently an [open issue][issue-mixed-panic] regarding the behavior
-when a foreign exception enters the Rust runtime via a crate compiled with
-`panic=unwind`, but escapes into a crate compiled with `panic=abort`. We have
-decided to [prohibit linking][pr-fix-mixed-panic] any crate from being linked
-with the `panic=abort` runtime if it has both of the following characteristics:
+We addressed a [soundness hole][issue-mixed-panic] regarding the behavior when
+a foreign exception enters the Rust runtime via a crate compiled with
+`panic=unwind`, but escapes into a crate compiled with `panic=abort`. We
+decided to [prohibit][pr-fix-mixed-panic] any crate from being linked with the
+`panic=abort` runtime if it has both of the following characteristics:
 
 * It contains a call to an `-unwind` foreign function or function pointer
 * It was compiled with `panic=unwind`
@@ -159,7 +143,7 @@ with the `panic=abort` runtime if it has both of the following characteristics:
 Note: `cargo` will automatically unify all crates to use the same `panic`
 runtime, so this prohibition does not apply to projects compiled with `cargo`.
 
-[PR #97235][pr-fix-mixed-panic] implements this prohibition.
+[PR #97235][pr-fix-mixed-panic] implemented this prohibition.
 
 ### Unresolved questions
 
@@ -222,7 +206,6 @@ I don't think Rust by Example needs to be updated.
 [pr-fix-mixed-panic]: https://github.com/rust-lang/rust/pull/97235/files
 [pr-double-unwind]: https://github.com/rust-lang/rust/pull/92911
 [issue-mixed-panic]: https://github.com/rust-lang/rust/issues/96926
-[pr-abort-in-personality]: https://github.com/rust-lang/rust/pull/86801
 [codegen-unwind]: https://github.com/rust-lang/rust/tree/master/src/test/codegen/unwind-abis
 [codegen-extra-1]: https://github.com/rust-lang/rust/blob/master/src/test/codegen/unwind-and-panic-abort.rs
 [codegen-extra-2]: https://github.com/rust-lang/rust/blob/master/src/test/codegen/unwind-extern-exports.rs
