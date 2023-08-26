@@ -7,12 +7,25 @@ stack-unwinding to cross FFI boundaries that do not support unwinding.
 
 ## Summary
 
-<!-- XXX verbiage -->
-if a program relies on `panic` "esacping" from `extern "C"`:
-* it is unsound
-* it will now crash
-* replacing `extern "x"` with `extern "x-unwind"` will produce the intended
-  behavior without the unsoundness
+When using `panic=unwind`, if a Rust function marked `extern "C"` panics (and
+that panic is not caught), the runtime will now abort.
+
+Previously, the runtime would simply attempt to unwind the caller's stack, but
+the behavior when doing so was undefined, because `extern "C"` functions are
+optimized with the assumption that they cannot unwind (i.e. in `rustc`, they
+are given the LLVM `nounwind` annotation).
+
+This affects existing programs. If a program relies on a Rust panic "escaping"
+from `extern "C"`:
+* It is currently unsound.
+* Once this feature is stabilized, the program will crash when this occurs,
+  whereas previously it may have appeared to work as expected.
+* Replacing `extern "x"` with `extern "x-unwind"` will produce the intended
+  behavior without the unsoundness.
+
+The behavior of function calls using `extern "C"` is unchanged; thus, it is
+still undefined behavior to call a C++ function that throws an exception using
+the `extern "C"` ABI, even when compiling with `panic=unwind`.
 
 ## Changes since the RFC
 
@@ -44,9 +57,8 @@ I've also [opened an issue][book-issue] to discuss adding a brief note about
 this feature in the Book.
 
 <!-- links -->
-<!-- XXX double check these! -->
 [rfc-text]: https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md
-[abort-on-panic]: https://github.com/rust-lang/rust/blob/master/src/test/ui/panics/abort-on-panic.rs
+[abort-on-panic]: https://github.com/rust-lang/rust/blob/master/tests/ui/panics/abort-on-panic.rs
 [nomicon]: https://github.com/rust-lang/nomicon/pull/365
 [reference]: https://github.com/rust-lang/reference/pull/1226
-[book-issue]: 
+[book-issue]: https://github.com/rust-lang/book/issues/3729
